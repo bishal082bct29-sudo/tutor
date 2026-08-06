@@ -212,20 +212,20 @@ button, input, textarea, select{font-family:inherit;}
 }
 .card:hover{background:var(--card-hover); transform:translateY(-2px);}
 
-/* group cards */
+/* group cards & class fee structure */
 .group-card .top{display:flex; justify-content:space-between; align-items:flex-start; gap:10px;}
 .group-card h3{font-size:19px;}
 .subject-chip{
   font-size:11.5px; font-weight:700; padding:4px 10px; border-radius:20px;
   background:rgba(143,208,224,0.16); color:var(--accent2); white-space:nowrap;
+  display:inline-block; margin-top:4px;
 }
 .group-card .desc{color:var(--text-dim); font-size:13.5px; margin-top:8px; line-height:1.5;}
 .group-meta{display:flex; gap:14px; margin-top:16px; flex-wrap:wrap;}
 .group-meta .item{font-size:12.5px; color:var(--text-dim); display:flex; align-items:center; gap:5px;}
 .group-meta b{color:var(--text); font-family:"Inter",sans-serif; font-size:15px;}
 .student-count{
-  margin-top:14px; padding-top:14px; border-top:1px dashed var(--line);
-  display:flex; align-items:center; gap:10px;
+  display:flex; align-items:center; gap:8px; font-size:12.5px; color:var(--text-dim);
 }
 .avatar-stack{display:flex;}
 .avatar-stack span{
@@ -234,6 +234,63 @@ button, input, textarea, select{font-family:inherit;}
   color:var(--text-dim);
 }
 .avatar-stack span:first-child{margin-left:0;}
+
+.class-fee-card {
+  display:flex; flex-direction:column; justify-content:space-between; position:relative;
+  background:var(--card); border:1px solid var(--line); border-radius:var(--radius);
+  padding:22px; transition:transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.class-fee-card:hover {
+  transform:translateY(-4px); border-color:color-mix(in srgb, var(--accent) 40%, var(--line));
+  box-shadow:0 10px 25px rgba(0,0,0,0.12);
+}
+.fee-card-badge-row {
+  display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:12px; flex-wrap:wrap;
+}
+.level-badge {
+  font-size:12px; font-weight:700; padding:4px 10px; border-radius:20px;
+  background:var(--bg3); color:var(--text); border:1px solid var(--line);
+}
+.demo-chip {
+  font-size:11px; font-weight:700; padding:3px 9px; border-radius:20px;
+  background:rgba(244,201,93,0.18); color:var(--accent); border:1px solid rgba(244,201,93,0.35);
+}
+.fee-card-header h3 {
+  font-size:19px; font-weight:700; line-height:1.3; color:var(--text); margin-bottom:4px;
+}
+.fee-highlight-box {
+  background:linear-gradient(135deg, rgba(244,201,93,0.08) 0%, rgba(143,208,224,0.12) 100%);
+  border:1px solid color-mix(in srgb, var(--accent) 30%, var(--line));
+  border-radius:12px; padding:12px 14px; margin:14px 0; text-align:center;
+}
+.fee-main {
+  font-size:21px; font-weight:800; color:var(--accent); letter-spacing:-0.4px;
+}
+.fee-sub {
+  font-size:11.5px; color:var(--text-dim); margin-top:2px; font-weight:500;
+}
+.fee-card-details {
+  display:flex; flex-direction:column; gap:9px; margin-bottom:16px; font-size:13px;
+}
+.detail-item {
+  display:flex; align-items:flex-start; gap:8px; color:var(--text-dim); line-height:1.4;
+}
+.detail-item .icon { font-size:13.5px; line-height:1.1; }
+.detail-item strong { color:var(--text); font-weight:600; }
+.detail-item.desc-item {
+  background:var(--bg2); padding:8px 10px; border-radius:8px; font-size:12.5px;
+  border-left:3px solid var(--accent);
+}
+.fee-card-footer {
+  display:flex; align-items:center; justify-content:space-between; gap:10px;
+  padding-top:14px; border-top:1px dashed var(--line); margin-top:auto;
+}
+.fee-cta-btn {
+  background:var(--accent); color:#000 !important; font-weight:700; padding:7px 14px;
+  border-radius:20px; text-decoration:none; font-size:12.5px; transition:transform 0.15s ease, opacity 0.15s ease;
+  white-space:nowrap; display:inline-flex; align-items:center; gap:4px;
+}
+.fee-cta-btn:hover { opacity:0.9; transform:scale(1.04); }
 
 /* vacancy list */
 .vac-item{

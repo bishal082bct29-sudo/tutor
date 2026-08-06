@@ -42,25 +42,63 @@ function renderAll(){
 
 function renderGroups(){
   const grid = document.getElementById('groupsGrid');
-  if(data.groups.length === 0){ grid.innerHTML = '<p class="empty-note">No groups posted yet.</p>'; return; }
-  grid.innerHTML = data.groups.map(g => `
-    <div class="card group-card">
-      <div class="top">
-        <h3>${escapeHtml(g.name)}</h3>
-        <span class="subject-chip">${escapeHtml(g.subject||'General')}</span>
+  if(!grid) return;
+  if(!data.groups || data.groups.length === 0){ grid.innerHTML = '<p class="empty-note">No classes or fee packages posted yet.</p>'; return; }
+  grid.innerHTML = data.groups.map(g => {
+    const feeText = g.fee ? escapeHtml(g.fee) : 'Contact for Fee';
+    const nameText = escapeHtml(g.name || 'Tuition Class');
+    const levelText = escapeHtml(g.level || 'All Grades');
+    const subjectText = escapeHtml(g.subject || 'All Core Subjects');
+    const scheduleText = escapeHtml(g.schedule || 'Flexible Timings');
+    const descText = escapeHtml(g.description || '');
+    const studentsCount = Number(g.students) || 0;
+    
+    return `
+      <div class="card group-card class-fee-card">
+        <div class="fee-card-badge-row">
+          <span class="level-badge">📍 ${levelText}</span>
+          <span class="demo-chip">✨ 2 Days FREE Demo</span>
+        </div>
+
+        <div class="fee-card-header">
+          <h3>${nameText}</h3>
+          <span class="subject-chip">${subjectText}</span>
+        </div>
+
+        <div class="fee-highlight-box">
+          <div class="fee-main">${feeText}</div>
+          <div class="fee-sub">Monthly Tuition Fee • Kathmandu Valley</div>
+        </div>
+
+        <div class="fee-card-details">
+          <div class="detail-item">
+            <span class="icon">🗓️</span>
+            <div><strong>Schedule:</strong> <span>${scheduleText}</span></div>
+          </div>
+          <div class="detail-item">
+            <span class="icon">👨‍🏫</span>
+            <div><strong>Mode:</strong> <span>1-on-1 Home Tuition &amp; Batches</span></div>
+          </div>
+          ${descText ? `
+          <div class="detail-item desc-item">
+            <span class="icon">💡</span>
+            <div><strong>Focus:</strong> <span>${descText}</span></div>
+          </div>
+          ` : ''}
+        </div>
+
+        <div class="fee-card-footer">
+          <div class="student-count">
+            <div class="avatar-stack">${avatarStack(studentsCount)}</div>
+            <span><b>${studentsCount}</b> enrolled</span>
+          </div>
+          <a href="https://wa.me/9779801775074?text=${encodeURIComponent('Hi Gurukul Tuition, I am interested in inquiring about: ' + (g.name || 'Tuition') + ' (' + (g.fee || '') + ')')}" target="_blank" rel="noopener" class="mini-btn fee-cta-btn">
+            Book Demo Class
+          </a>
+        </div>
       </div>
-      <p class="desc">${escapeHtml(g.description||'')}</p>
-      <div class="group-meta">
-        <div class="item">📍 <b>${escapeHtml(g.level||'—')}</b></div>
-        <div class="item">🗓️ <b>${escapeHtml(g.schedule||'—')}</b></div>
-        ${g.fee ? `<div class="item">💳 <b>${escapeHtml(g.fee)}</b></div>` : ''}
-      </div>
-      <div class="student-count">
-        <div class="avatar-stack">${avatarStack(g.students)}</div>
-        <span style="font-size:13px;color:var(--text-dim);"><b style="color:var(--text);font-family:'Inter',sans-serif;">${g.students||0}</b> student${(g.students||0)===1?'':'s'} enrolled</span>
-      </div>
-    </div>
-  `).join('');
+    `;
+  }).join('');
 }
 function avatarStack(count){
   const n = Math.min(Number(count)||0, 4);

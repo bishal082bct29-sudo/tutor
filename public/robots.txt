@@ -1,4 +1,5 @@
 User-agent: *
 Allow: /
 
+Sitemap: https://gurukultution.vercel.app/sitemap.xml
 Sitemap: https://www.gurukulhometuitions.com/sitemap.xml
