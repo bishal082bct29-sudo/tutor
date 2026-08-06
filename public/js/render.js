@@ -73,7 +73,16 @@ function avatarStack(count){
 function renderVacancies(){
   const el = document.getElementById('vacList');
   if(data.vacancies.length === 0){ el.innerHTML = '<p class="empty-note">No vacancies posted right now — check back soon.</p>'; return; }
-  el.innerHTML = data.vacancies.map(v => `
+  el.innerHTML = data.vacancies.map(v => {
+    const isVerified = isVacancyVerified(v);
+    const isFilled = v.status === 'filled';
+    const isClosed = isVerified || isFilled;
+    const applicantCount = getVacancyApplicantCount(v.id);
+    const statusClass = isVerified ? 'verified' : (isFilled ? 'filled' : 'open');
+    const statusLabel = isVerified ? '✓ Verified / Filled' : (isFilled ? 'Filled' : 'Open');
+    const applicantText = applicantCount === 0 ? 'No other teachers applied yet' : (applicantCount === 1 ? '1 other teacher applied' : applicantCount + ' other teachers applied');
+
+    return `
     <div class="vac-item">
       <div class="vac-left">
         <h3>${escapeHtml(v.title)}</h3>
@@ -86,23 +95,33 @@ function renderVacancies(){
           ${v.salary ? `<span>·</span><span>${escapeHtml(v.salary)}</span>` : ''}
         </div>
         ${v.description ? `<p class="desc">${escapeHtml(v.description)}</p>` : ''}
+        <div class="vac-applicants-chip">
+          <span>👥</span>
+          <span>${applicantText}</span>
+        </div>
       </div>
       <div class="vac-right">
-        <span class="status-badge ${v.status==='filled'?'filled':'open'}">${v.status==='filled'?'Filled':'Open'}</span>
-        ${v.status!=='filled' ? `<button class="mini-btn primary" onclick="openApply('${v.id}')">Apply</button>` : ''}
+        <span class="status-badge ${statusClass}">${statusLabel}</span>
+        ${isClosed 
+          ? `<button class="mini-btn disabled" disabled title="This post is verified/filled by admin. No other teacher can apply.">🔒 Closed (Verified)</button>` 
+          : `<button class="mini-btn primary" onclick="openApply('${v.id}')">Apply</button>`
+        }
       </div>
     </div>
-  `).join('');
+  `;
+  }).join('');
 }
 
 function renderLogoMark(){
   const p = data.profile;
   const mark = document.getElementById('logoMark');
   const initials = (p.companyName||'HT').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
-  if(p.logoUrl){
-    mark.innerHTML = `<img src="${escapeAttr(p.logoUrl)}" alt="${escapeAttr(p.companyName||'Logo')}" style="width:100%;height:100%;object-fit:cover;border-radius:10px;">`;
-  } else {
-    mark.textContent = initials;
+  if(mark){
+    if(p.logoUrl){
+      mark.innerHTML = `<img src="${escapeAttr(p.logoUrl)}" alt="${escapeAttr(p.companyName||'Logo')}" style="width:100%;height:100%;object-fit:cover;border-radius:10px;">`;
+    } else {
+      mark.textContent = initials;
+    }
   }
   /* keep the opening splash-screen logo in sync with the saved profile logo */
   const badge = document.getElementById('introBadge');
@@ -110,17 +129,17 @@ function renderLogoMark(){
     if(p.logoUrl){
       badge.innerHTML = `<img src="${escapeAttr(p.logoUrl)}" alt="${escapeAttr(p.companyName||'Logo')}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`;
     } else {
-      badge.innerHTML = `<svg viewBox="0 0 48 48" width="52" height="52" fill="none">
-      <path d="M24 6 4 15l20 9 20-9-20-9Z" stroke="#fff" stroke-width="2" stroke-linejoin="round"/>
-      <path d="M12 20v10c0 3 5 6 12 6s12-3 12-6V20" stroke="#fff" stroke-width="2" stroke-linejoin="round"/>
-      <path d="M40 18v10" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
-    </svg>`;
+      badge.innerHTML = `<svg viewBox="0 0 48 48" width="56" height="56" fill="none">
+        <path d="M24 6 4 15l20 9 20-9-20-9Z" stroke="#fff" stroke-width="2.5" stroke-linejoin="round"/>
+        <path d="M12 20v10c0 3 5 6 12 6s12-3 12-6V20" stroke="#fff" stroke-width="2.5" stroke-linejoin="round"/>
+        <path d="M40 18v10" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/>
+      </svg>`;
     }
   }
   const introName = document.getElementById('introName');
   const introTag = document.getElementById('introTag');
-  if(introName) introName.textContent = p.companyName || 'Home Tutors';
-  if(introTag) introTag.textContent = p.tagline || 'Learning, one home at a time';
+  if(introName) introName.textContent = p.companyName || 'Gurukul Home Tuitions';
+  if(introTag) introTag.textContent = p.tagline || 'Where learning meets clarity';
 }
 
 function renderGallery(){

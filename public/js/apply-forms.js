@@ -3,8 +3,24 @@ const applyOverlay = document.getElementById('applyOverlay');
 const MAX_CV_FILE_MB = 5;
 function openApply(vacId){
   const v = data.vacancies.find(x=>x.id===vacId);
+  if(v && isVacancyVerified(v)){
+    showToast('This vacancy post is verified & filled. Applications are closed.');
+    return;
+  }
   document.getElementById('apply_vacId').value = vacId;
   document.getElementById('apply_vacTitle').textContent = v ? v.title : 'Position';
+
+  // Show teacher applicant count banner
+  const bannerEl = document.getElementById('apply_applicantBanner');
+  if(bannerEl){
+    const count = getVacancyApplicantCount(vacId);
+    bannerEl.innerHTML = count === 0 
+      ? '👥 <b>Be the first teacher to apply!</b> No other teachers have applied for this post yet.' 
+      : (count === 1 
+          ? '👥 <b>1 other teacher</b> has applied for this vacancy post.' 
+          : '👥 <b>' + count + ' other teachers</b> have applied for this vacancy post.');
+  }
+
   document.getElementById('apply_name').value = '';
   document.getElementById('apply_phone').value = '';
   document.getElementById('apply_cvFile').value = '';
@@ -92,13 +108,17 @@ document.getElementById('apply_submitBtn').addEventListener('click', async () =>
   let cvFileUrl = '', cvFileName = '';
   let paymentFileUrl = '', paymentFileName = '';
   let cvUploadFailed = false, paymentUploadFailed = false;
-  const UPLOAD_TIMEOUT_MS = 12000;
+  const UPLOAD_TIMEOUT_MS = 2500;
   function readFileAsDataUrl(file){
     return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result);
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
+      if(file.type && file.type.startsWith('image/')){
+        compressImageFile(file, (dataUrl) => resolve(dataUrl));
+      } else {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      }
     });
   }
 
@@ -165,7 +185,9 @@ document.getElementById('apply_submitBtn').addEventListener('click', async () =>
     agreedAt: Date.now(),
     submittedAt: Date.now()
   });
-  await saveData();
+  saveData();
+  renderVacancies();
+  if(isAdmin) renderAdminApplications();
   btn.disabled = false; btn.textContent = originalLabel;
   document.getElementById('apply_ok').classList.add('show');
   showToast('Application sent!');

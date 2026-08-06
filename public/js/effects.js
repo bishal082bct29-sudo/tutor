@@ -1,8 +1,63 @@
 /* ===================== ENHANCEMENT LAYER JS ===================== */
 
-/* loading screen — logo opening scene */
-window.addEventListener('load', () => {
-  setTimeout(() => document.getElementById('loadScreen').classList.add('hide'), 1200);
+/* YouTube opening splash animation */
+function playYoutubeSplash(){
+  const loadScreen = document.getElementById('loadScreen');
+  const progressBar = document.getElementById('ytProgressBar');
+  if(!loadScreen) return;
+
+  // Reset animations
+  loadScreen.classList.remove('hide', 'yt-out');
+
+  // Restart CSS keyframe animations for elements inside loadScreen
+  const badge = loadScreen.querySelector('.intro-badge');
+  const name = loadScreen.querySelector('.intro-name');
+  const tag = loadScreen.querySelector('.intro-tag');
+  [badge, name, tag].forEach(el => {
+    if(el){
+      el.style.animation = 'none';
+      void el.offsetWidth; // force reflow
+      el.style.animation = '';
+    }
+  });
+
+  if(progressBar){
+    progressBar.style.transition = 'none';
+    progressBar.style.width = '0%';
+    void progressBar.offsetWidth;
+    progressBar.style.transition = 'width 1.25s cubic-bezier(0.2, 0.8, 0.2, 1)';
+    progressBar.style.width = '100%';
+  }
+
+  // Smooth cinematic YouTube exit
+  setTimeout(() => {
+    loadScreen.classList.add('yt-out');
+    setTimeout(() => {
+      loadScreen.classList.add('hide');
+    }, 450);
+  }, 1450);
+}
+
+// Trigger automatically on starting / reloading page
+if(document.readyState === 'interactive' || document.readyState === 'complete'){
+  playYoutubeSplash();
+}else{
+  window.addEventListener('DOMContentLoaded', playYoutubeSplash);
+  window.addEventListener('load', playYoutubeSplash);
+}
+
+// Re-play splash animation when clicking top left brand logo
+document.addEventListener('DOMContentLoaded', () => {
+  const brandEl = document.querySelector('.brand');
+  if(brandEl){
+    brandEl.style.cursor = 'pointer';
+    brandEl.title = 'Click to replay opening intro';
+    brandEl.addEventListener('click', (e) => {
+      if(!e.target.closest('a')){
+        playYoutubeSplash();
+      }
+    });
+  }
 });
 
 /* mobile hamburger menu (FB-style dropdown) */

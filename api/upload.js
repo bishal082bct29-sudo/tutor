@@ -1,6 +1,9 @@
 import { handleUpload } from '@vercel/blob/client';
 
 export default async function handler(request, response) {
+  if (!process.env.BLOB_READ_WRITE_TOKEN) {
+    return response.status(400).json({ error: 'BLOB_READ_WRITE_TOKEN environment variable is not configured.' });
+  }
   const body = request.body;
 
   try {

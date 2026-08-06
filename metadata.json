@@ -1,6 +1,8 @@
 {
-  "name": "Gurukul Home Tuitions",
-  "description": "Home tutoring service in Kathmandu Valley connecting students with tutors",
+  "name": "Remix tutor",
+  "description": "Imported from GitHub: bishal082bct29-sudo/tutor",
   "requestFramePermissions": [],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
 }

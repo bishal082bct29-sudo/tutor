@@ -105,15 +105,24 @@
 <body>
 
 <div id="loadScreen">
-  <div class="intro-badge" id="introBadge">
-    <svg viewBox="0 0 48 48" width="52" height="52" fill="none">
-      <path d="M24 6 4 15l20 9 20-9-20-9Z" stroke="#fff" stroke-width="2" stroke-linejoin="round"/>
-      <path d="M12 20v10c0 3 5 6 12 6s12-3 12-6V20" stroke="#fff" stroke-width="2" stroke-linejoin="round"/>
-      <path d="M40 18v10" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
-    </svg>
+  <div class="yt-splash-glow"></div>
+  <div class="yt-splash-content">
+    <div class="yt-badge-wrapper">
+      <div class="yt-badge-ring"></div>
+      <div class="intro-badge" id="introBadge">
+        <svg viewBox="0 0 48 48" width="56" height="56" fill="none">
+          <path d="M24 6 4 15l20 9 20-9-20-9Z" stroke="#fff" stroke-width="2.5" stroke-linejoin="round"/>
+          <path d="M12 20v10c0 3 5 6 12 6s12-3 12-6V20" stroke="#fff" stroke-width="2.5" stroke-linejoin="round"/>
+          <path d="M40 18v10" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/>
+        </svg>
+      </div>
+    </div>
+    <div class="intro-name" id="introName">Gurukul Home Tuitions</div>
+    <div class="intro-tag" id="introTag">Where learning meets clarity</div>
+    <div class="yt-progress-container">
+      <div class="yt-progress-bar" id="ytProgressBar"></div>
+    </div>
   </div>
-  <div class="intro-name" id="introName">Gurukul Home Tuitions</div>
-  <div class="intro-tag" id="introTag">Where learning meets clarity</div>
 </div>
 <div id="scrollProgress"></div>
 <div class="bg-float-shapes" aria-hidden="true"><span></span><span></span><span></span></div>
@@ -135,8 +144,9 @@
     </div>
     <div class="nav-actions">
       <div class="nav-links">
-        <a href="#groups">Groups</a>
         <a href="#parents">Parents</a>
+        <a href="#services">Services</a>
+        <a href="#groups">Groups</a>
         <a href="#vacancies">Vacancies</a>
         <a href="#gallery">Gallery</a>
         <a href="#info">Info</a>
@@ -156,8 +166,9 @@
 </div>
 
 <div class="mobile-menu" id="mobileMenu">
-  <a href="#groups">Groups</a>
   <a href="#parents">Parents</a>
+  <a href="#services">Services</a>
+  <a href="#groups">Groups</a>
   <a href="#vacancies">Vacancies</a>
   <a href="#gallery">Gallery</a>
   <a href="#info">Info</a>
@@ -182,6 +193,22 @@
       <div class="hero-stat"><b id="statGroups" data-count="0">0</b><span>active groups</span></div>
       <div class="hero-stat"><b id="statStudents" data-count="0">0</b><span>students taught</span></div>
       <div class="hero-stat"><b id="statVac" data-count="0">0</b><span>open vacancies</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ================= FOR PARENTS ================= -->
+<div class="section wrap" id="parents">
+  <div class="card parents-card reveal" style="display:flex; justify-content:space-between; align-items:center; gap:24px; flex-wrap:wrap; padding:28px 32px;">
+    <div style="flex:1 1 340px;">
+      <span class="eyebrow">— for parents —</span>
+      <h2 style="font-size:clamp(22px,3vw,30px); font-weight:700; margin:4px 0 8px;">Register your child</h2>
+      <p style="color:var(--text-dim); font-size:14.5px; line-height:1.6; max-width:620px;">
+        Tell us about your child so we can place them in the right batch and keep you updated on their progress. Share their name, grade, school, and specific learning needs — our admin team reviews every submission and will reach out to confirm placement.
+      </p>
+    </div>
+    <div style="flex-shrink:0;">
+      <button class="pill-btn" id="childOpenBtn">+ Add your child's details</button>
     </div>
   </div>
 </div>
@@ -267,24 +294,6 @@
     </div>
   </div>
   <div class="grid cols-3 reveal-stagger" id="groupsGrid"></div>
-</div>
-
-<!-- ================= FOR PARENTS ================= -->
-<div class="section wrap" id="parents">
-  <div class="section-head reveal">
-    <div>
-      <span class="eyebrow">— for parents —</span>
-      <h2>Register your child</h2>
-      <p class="section-desc">Tell us about your child so we can place them in the right batch and keep you updated on their progress. Only visible to our admin team.</p>
-    </div>
-    <button class="pill-btn" id="childOpenBtn">+ Add your child's details</button>
-  </div>
-  <div class="card" style="max-width:640px;">
-    <p style="color:var(--text-dim);font-size:14.5px;line-height:1.6;">
-      Share your child's name, age/grade, school and anything we should know — allergies, learning needs, subjects they need help with, etc.
-      Our admin team reviews every submission and will reach out to confirm placement.
-    </p>
-  </div>
 </div>
 
 <!-- ================= VACANCIES ================= -->
@@ -507,6 +516,7 @@
       <button class="icon-btn" id="applyCloseBtn">&times;</button>
     </div>
     <input type="hidden" id="apply_vacId">
+    <div id="apply_applicantBanner" class="apply-applicant-banner"></div>
 
     <div class="field">
       <label>Teacher's policy — terms &amp; conditions (strictly to be abided)</label>
@@ -771,7 +781,11 @@
     </div>
     <div class="field"><label>Description</label><textarea id="vac_desc" placeholder="Requirements, timing, etc."></textarea></div>
     <div class="field"><label>Status</label>
-      <select id="vac_status"><option value="open">Open</option><option value="filled">Filled</option></select>
+      <select id="vac_status">
+        <option value="open">Open</option>
+        <option value="verified">Verified (Closed)</option>
+        <option value="filled">Filled (Closed)</option>
+      </select>
     </div>
     <div class="err-msg" id="vac_err">Please enter a position title.</div>
     <button class="pill-btn" style="width:100%;" id="vac_saveBtn">Save vacancy</button>

@@ -108,28 +108,59 @@ async function loadData(){
   }
 }
 
+let saveDebounceTimer = null;
 async function saveData(){
-  try{
-    suppressNextPoll = true;
-    const resp = await fetch('/api/data', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
-    });
-    if(!resp.ok) throw new Error('Server returned ' + resp.status);
-    const json = await resp.json();
-    lastKnownUpdatedAt = json.updatedAt;
-  }catch(e){
-    console.error('Could not save data. Check DATABASE_URL and that the API routes are deployed.', e);
-    alert('Could not save — check your internet connection.');
-  }
+  suppressNextPoll = true;
+  clearTimeout(saveDebounceTimer);
+  return new Promise((resolve) => {
+    saveDebounceTimer = setTimeout(async () => {
+      try{
+        const resp = await fetch('/api/data', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+        if(resp.ok){
+          const json = await resp.json();
+          lastKnownUpdatedAt = json.updatedAt;
+        }
+      }catch(e){
+        console.warn('Background save note:', e);
+      }
+      resolve();
+    }, 20);
+  });
+}
+
+function isAppFullyVerified(a){
+  if(!a) return false;
+  if(a.verified === true) return true;
+  const needsCv = !!a.cvFileUrl;
+  const needsPayment = !!a.paymentFileUrl;
+  if(!needsCv && !needsPayment) return false;
+  if(needsCv && !a.cvVerified) return false;
+  if(needsPayment && !a.paymentVerified) return false;
+  return true;
+}
+
+function isVacancyVerified(v){
+  if(!v) return false;
+  if(v.status === 'verified' || v.status === 'filled' || v.verified === true) return true;
+  const apps = (data.applications || []).filter(a => a.vacancyId === v.id);
+  return apps.some(a => a.verified === true || isAppFullyVerified(a));
+}
+
+function getVacancyApplicantCount(vacId){
+  if(!vacId) return 0;
+  return (data.applications || []).filter(a => a.vacancyId === vacId).length;
 }
 
 // Near-live sync: since Postgres has no built-in push like Firestore,
 // every open tab quietly polls for changes made elsewhere (by the admin,
 // or by another visitor) and re-renders when something changed.
-const POLL_INTERVAL_MS = 4000;
+const POLL_INTERVAL_MS = 5000;
 async function pollForChanges(){
+  if(document.hidden) return; // Save bandwidth and CPU when tab is in background
   if(suppressNextPoll){ suppressNextPoll = false; return; }
   try{
     const resp = await fetch('/api/data');

@@ -4,7 +4,7 @@ export default async function handler(req, res) {
   try {
     if (req.method === 'GET') {
       const rows = await sql`SELECT data, updated_at FROM site_data WHERE id = 'main'`;
-      if (rows.length === 0) {
+      if (!rows || rows.length === 0) {
         return res.status(200).json({ data: null, updatedAt: null });
       }
       return res.status(200).json({ data: rows[0].data, updatedAt: rows[0].updated_at });
@@ -21,7 +21,7 @@ export default async function handler(req, res) {
         ON CONFLICT (id) DO UPDATE SET data = EXCLUDED.data, updated_at = now()
         RETURNING updated_at
       `;
-      return res.status(200).json({ updatedAt: rows[0].updated_at });
+      return res.status(200).json({ updatedAt: rows && rows[0] ? rows[0].updated_at : new Date().toISOString() });
     }
 
     res.setHeader('Allow', 'GET, PUT, POST');

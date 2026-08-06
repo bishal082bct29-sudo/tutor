@@ -189,15 +189,23 @@ document.getElementById('grp_saveBtn').addEventListener('click', () => {
 const vacEditOverlay = document.getElementById('vacEditOverlay');
 function renderAdminVacancies(){
   const el = document.getElementById('vac_list');
-  el.innerHTML = data.vacancies.map(v => `
+  el.innerHTML = data.vacancies.map(v => {
+    const isVer = isVacancyVerified(v);
+    const statusLabel = isVer ? 'Verified (Closed)' : (v.status==='filled' ? 'Filled (Closed)' : 'Open');
+    const appsCount = getVacancyApplicantCount(v.id);
+    return `
     <div class="admin-list-item">
-      <div class="info"><b>${escapeHtml(v.title)}</b><span>${escapeHtml(v.subject||'')} · ${v.status==='filled'?'Filled':'Open'}</span></div>
+      <div class="info">
+        <b>${escapeHtml(v.title)}</b>
+        <span>${escapeHtml(v.subject||'')} · Status: ${statusLabel} · ${appsCount} applicant(s)</span>
+      </div>
       <div class="row-actions">
         <button class="mini-btn" onclick="editVacancy('${v.id}')">Edit</button>
         <button class="mini-btn danger" onclick="deleteVacancy('${v.id}')">Delete</button>
       </div>
     </div>
-  `).join('') || '<p class="empty-note">No vacancies yet.</p>';
+  `;
+  }).join('') || '<p class="empty-note">No vacancies yet.</p>';
 }
 document.getElementById('vac_addBtn').addEventListener('click', () => openVacancyEdit(null));
 document.getElementById('vacEditCloseBtn').addEventListener('click', () => vacEditOverlay.classList.remove('open'));
@@ -310,8 +318,38 @@ function renderAdminApplications(){
           ? `<span class="verify-badge">✓ Payment verified</span><button class="mini-btn" onclick="toggleAppVerified('${a.id}','paymentVerified')">Undo</button>`
           : `<button class="mini-btn verify" onclick="toggleAppVerified('${a.id}','paymentVerified')">Mark payment verified</button>`}
       </div>` : `<div style="font-size:12.5px;color:var(--text-dim);">⚠ No payment screenshot attached yet</div>`}
+      <div style="margin-top:8px;padding:10px 12px;background:var(--bg);border:1px solid var(--line);border-radius:8px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">
+        <span style="font-size:12.5px;font-weight:700;color:${a.verified?'var(--accent2)':'var(--text)'};">
+          ${a.verified ? '✓ Verified Candidate (Vacancy post closed to others)' : 'Post Lock Action:'}
+        </span>
+        ${a.verified 
+          ? `<button class="mini-btn" onclick="toggleCandidateVerified('${a.id}')">🔓 Re-open Vacancy Post</button>`
+          : `<button class="mini-btn verify" onclick="toggleCandidateVerified('${a.id}')">🔒 Verify Candidate & Close Post</button>`
+        }
+      </div>
     </div>
   `).join('');
+}
+function toggleCandidateVerified(id){
+  const app = (data.applications||[]).find(a=>a.id===id);
+  if(!app) return;
+  const vac = (data.vacancies||[]).find(v=>v.id===app.vacancyId);
+  app.verified = !app.verified;
+  if(app.verified){
+    app.cvVerified = true;
+    app.paymentVerified = true;
+    if(vac){ vac.status = 'verified'; vac.verified = true; }
+    showToast('Candidate verified! Vacancy post is now closed to other applicants.');
+  } else {
+    app.cvVerified = false;
+    app.paymentVerified = false;
+    if(vac){ vac.status = 'open'; vac.verified = false; }
+    showToast('Candidate verification reset — Vacancy post re-opened.');
+  }
+  saveData();
+  renderAdminApplications();
+  renderAdminVacancies();
+  renderAll();
 }
 function toggleAppVerified(id, field){
   const app = (data.applications||[]).find(a=>a.id===id);
