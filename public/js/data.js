@@ -69,7 +69,17 @@ function defaultData(){
   };
 }
 
-let data = null;
+function getInitialCachedData(){
+  try{
+    const cached = localStorage.getItem('gurukul_cached_data');
+    if(cached){
+      return mergeWithDefaults(JSON.parse(cached));
+    }
+  }catch(e){}
+  return defaultData();
+}
+
+let data = getInitialCachedData();
 let isAdmin = false;
 let suppressNextPoll = false;
 let dataReadyResolve;
@@ -97,6 +107,7 @@ async function loadData(){
     if(json.data){
       data = mergeWithDefaults(json.data);
       lastKnownUpdatedAt = json.updatedAt;
+      try{ localStorage.setItem('gurukul_cached_data', JSON.stringify(data)); }catch(e){}
     } else {
       // First time ever running — seed the row with the starter data.
       data = defaultData();
@@ -104,12 +115,13 @@ async function loadData(){
     }
   }catch(e){
     console.error('Could not load data. Check DATABASE_URL and that the API routes are deployed.', e);
-    data = defaultData();
+    if(!data) data = defaultData();
   }
 }
 
 let saveDebounceTimer = null;
 async function saveData(){
+  try{ localStorage.setItem('gurukul_cached_data', JSON.stringify(data)); }catch(e){}
   suppressNextPoll = true;
   clearTimeout(saveDebounceTimer);
   return new Promise((resolve) => {

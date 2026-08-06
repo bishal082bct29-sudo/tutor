@@ -129,7 +129,7 @@ function renderLogoMark(){
     if(p.logoUrl){
       badge.innerHTML = `<img src="${escapeAttr(p.logoUrl)}" alt="${escapeAttr(p.companyName||'Logo')}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`;
     } else {
-      badge.innerHTML = `<svg viewBox="0 0 48 48" width="56" height="56" fill="none">
+      badge.innerHTML = `<svg viewBox="0 0 48 48" width="74" height="74" fill="none">
         <path d="M24 6 4 15l20 9 20-9-20-9Z" stroke="#fff" stroke-width="2.5" stroke-linejoin="round"/>
         <path d="M12 20v10c0 3 5 6 12 6s12-3 12-6V20" stroke="#fff" stroke-width="2.5" stroke-linejoin="round"/>
         <path d="M40 18v10" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/>
