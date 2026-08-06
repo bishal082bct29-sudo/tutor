@@ -1,0 +1,226 @@
+/* ---------- APPLY (public — teachers applying to a vacancy) ---------- */
+const applyOverlay = document.getElementById('applyOverlay');
+const MAX_CV_FILE_MB = 5;
+function openApply(vacId){
+  const v = data.vacancies.find(x=>x.id===vacId);
+  document.getElementById('apply_vacId').value = vacId;
+  document.getElementById('apply_vacTitle').textContent = v ? v.title : 'Position';
+  document.getElementById('apply_name').value = '';
+  document.getElementById('apply_phone').value = '';
+  document.getElementById('apply_cvFile').value = '';
+  document.getElementById('apply_cvFileName').textContent = '';
+  document.getElementById('apply_paymentFile').value = '';
+  document.getElementById('apply_paymentFileName').textContent = '';
+  document.getElementById('apply_cvText').value = '';
+  document.getElementById('apply_cvLink').value = '';
+  document.getElementById('apply_agree').checked = false;
+  document.getElementById('apply_err').classList.remove('show');
+  document.getElementById('apply_ok').classList.remove('show');
+  applyOverlay.classList.add('open');
+}
+document.getElementById('applyCloseBtn').addEventListener('click', () => applyOverlay.classList.remove('open'));
+applyOverlay.addEventListener('click', e => { if(e.target === applyOverlay) applyOverlay.classList.remove('open'); });
+
+document.getElementById('apply_cvFile').addEventListener('change', () => {
+  const file = document.getElementById('apply_cvFile').files[0];
+  const nameEl = document.getElementById('apply_cvFileName');
+  const errEl = document.getElementById('apply_err');
+  errEl.classList.remove('show');
+  if(!file){ nameEl.textContent = ''; return; }
+  const isPdf = file.type === 'application/pdf';
+  const isImage = file.type.startsWith('image/');
+  if(!isPdf && !isImage){
+    errEl.textContent = 'Only PDF or image files are accepted for the CV upload.';
+    errEl.classList.add('show');
+    document.getElementById('apply_cvFile').value = '';
+    nameEl.textContent = '';
+    return;
+  }
+  if(file.size > MAX_CV_FILE_MB * 1024 * 1024){
+    errEl.textContent = `That file is too large — please keep it under ${MAX_CV_FILE_MB}MB.`;
+    errEl.classList.add('show');
+    document.getElementById('apply_cvFile').value = '';
+    nameEl.textContent = '';
+    return;
+  }
+  nameEl.textContent = '📎 ' + file.name + ' (' + (file.size/1024/1024).toFixed(1) + 'MB)';
+});
+
+const MAX_PAYMENT_FILE_MB = 5;
+document.getElementById('apply_paymentFile').addEventListener('change', () => {
+  const file = document.getElementById('apply_paymentFile').files[0];
+  const nameEl = document.getElementById('apply_paymentFileName');
+  const errEl = document.getElementById('apply_err');
+  errEl.classList.remove('show');
+  if(!file){ nameEl.textContent = ''; return; }
+  if(!file.type.startsWith('image/')){
+    errEl.textContent = 'The payment screenshot must be an image file.';
+    errEl.classList.add('show');
+    document.getElementById('apply_paymentFile').value = '';
+    nameEl.textContent = '';
+    return;
+  }
+  if(file.size > MAX_PAYMENT_FILE_MB * 1024 * 1024){
+    errEl.textContent = `That screenshot is too large — please keep it under ${MAX_PAYMENT_FILE_MB}MB.`;
+    errEl.classList.add('show');
+    document.getElementById('apply_paymentFile').value = '';
+    nameEl.textContent = '';
+    return;
+  }
+  nameEl.textContent = '🧾 ' + file.name + ' (' + (file.size/1024/1024).toFixed(1) + 'MB)';
+});
+
+document.getElementById('apply_submitBtn').addEventListener('click', async () => {
+  const vacId = document.getElementById('apply_vacId').value;
+  const name = document.getElementById('apply_name').value.trim();
+  const phone = document.getElementById('apply_phone').value.trim();
+  const cvFile = document.getElementById('apply_cvFile').files[0] || null;
+  const cvText = document.getElementById('apply_cvText').value.trim();
+  const cvLink = document.getElementById('apply_cvLink').value.trim();
+  const paymentFile = document.getElementById('apply_paymentFile').files[0] || null;
+  const agreed = document.getElementById('apply_agree').checked;
+  const errEl = document.getElementById('apply_err');
+  errEl.classList.remove('show');
+  if(!name || !phone){ errEl.textContent = 'Enter your name and phone number.'; errEl.classList.add('show'); return; }
+  if(!cvFile && !cvText && !cvLink){ errEl.textContent = 'Upload a CV file, paste a CV summary, or add a CV link.'; errEl.classList.add('show'); return; }
+  if(!agreed){ errEl.textContent = "Please read and agree to the Teacher's Policy — Terms & Conditions above to continue."; errEl.classList.add('show'); return; }
+
+  const btn = document.getElementById('apply_submitBtn');
+  const originalLabel = btn.textContent;
+  btn.disabled = true;
+
+  let cvFileUrl = '', cvFileName = '';
+  let paymentFileUrl = '', paymentFileName = '';
+  let cvUploadFailed = false, paymentUploadFailed = false;
+  const UPLOAD_TIMEOUT_MS = 12000;
+  function readFileAsDataUrl(file){
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
+
+  function uploadWithTimeout(file, pathPrefix, ms){
+    const filename = pathPrefix + '/' + uid(pathPrefix) + '-' + file.name.replace(/[^a-zA-Z0-9.\-_]/g,'_');
+    return Promise.race([
+      window.__vercelBlobUpload ? window.__vercelBlobUpload(filename, file, { access: 'public', handleUploadUrl: '/api/upload' }) : Promise.reject(new Error('Vercel Blob not initialized')),
+      new Promise((_, reject) => setTimeout(() => reject(Object.assign(new Error('timeout'), {code:'storage/timeout'})), ms))
+    ]);
+  }
+  if(cvFile){
+    try{
+      btn.textContent = 'Uploading CV…';
+      const blob = await uploadWithTimeout(cvFile, 'cv-uploads', UPLOAD_TIMEOUT_MS);
+      cvFileUrl = blob.url;
+      cvFileName = cvFile.name;
+    }catch(e){
+      console.warn('Vercel Blob upload for CV failed/unconfigured, falling back to Data URL.', e);
+      try {
+        cvFileUrl = await readFileAsDataUrl(cvFile);
+        cvFileName = cvFile.name;
+      } catch(err) {
+        console.error('CV reading failed', err);
+        cvUploadFailed = true;
+      }
+    }
+  }
+  if(paymentFile){
+    try{
+      btn.textContent = 'Uploading payment screenshot…';
+      const blob = await uploadWithTimeout(paymentFile, 'payment-screenshots', UPLOAD_TIMEOUT_MS);
+      paymentFileUrl = blob.url;
+      paymentFileName = paymentFile.name;
+    }catch(e){
+      console.warn('Vercel Blob upload for payment screenshot failed/unconfigured, falling back to Data URL.', e);
+      try {
+        paymentFileUrl = await readFileAsDataUrl(paymentFile);
+        paymentFileName = paymentFile.name;
+      } catch(err) {
+        console.error('Payment screenshot reading failed', err);
+        paymentUploadFailed = true;
+      }
+    }
+  }
+  if((cvUploadFailed && !cvText && !cvLink) || paymentUploadFailed){
+    const parts = [];
+    if(cvUploadFailed) parts.push('CV file');
+    if(paymentUploadFailed) parts.push('payment screenshot');
+    errEl.textContent = "Heads up: the " + parts.join(' and ') + " could not be attached (file uploads aren't working on this site right now — likely a Blob storage setup issue on the admin's end). Your application is still being submitted" + (cvUploadFailed && !cvText && !cvLink ? ' — please also WhatsApp or call to send your CV directly.' : '.');
+    errEl.classList.add('show');
+  }
+
+  btn.textContent = 'Sending…';
+  const v = data.vacancies.find(x=>x.id===vacId);
+  if(!data.applications) data.applications = [];
+  data.applications.push({
+    id: uid('a'),
+    vacancyId: vacId,
+    vacancyTitle: v ? v.title : '',
+    name, phone, cvText, cvLink, cvFileUrl, cvFileName,
+    paymentFileUrl, paymentFileName,
+    agreedTerms: true,
+    signature: name,
+    agreedAt: Date.now(),
+    submittedAt: Date.now()
+  });
+  await saveData();
+  btn.disabled = false; btn.textContent = originalLabel;
+  document.getElementById('apply_ok').classList.add('show');
+  showToast('Application sent!');
+  const closeDelay = errEl.classList.contains('show') ? 4000 : 1200;
+  setTimeout(() => { applyOverlay.classList.remove('open'); }, closeDelay);
+});
+
+/* ---------- REGISTER CHILD (public — parents adding their child's details) ---------- */
+const childOverlay = document.getElementById('childOverlay');
+function openChildForm(){
+  document.getElementById('child_parentName').value = '';
+  document.getElementById('child_parentPhone').value = '';
+  document.getElementById('child_parentEmail').value = '';
+  document.getElementById('child_name').value = '';
+  document.getElementById('child_age').value = '';
+  document.getElementById('child_grade').value = '';
+  document.getElementById('child_school').value = '';
+  document.getElementById('child_notes').value = '';
+  document.getElementById('child_err').classList.remove('show');
+  document.getElementById('child_ok').classList.remove('show');
+  childOverlay.classList.add('open');
+}
+document.getElementById('childOpenBtn').addEventListener('click', openChildForm);
+document.getElementById('childCloseBtn').addEventListener('click', () => childOverlay.classList.remove('open'));
+childOverlay.addEventListener('click', e => { if(e.target === childOverlay) childOverlay.classList.remove('open'); });
+
+document.getElementById('child_submitBtn').addEventListener('click', async () => {
+  const parentName = document.getElementById('child_parentName').value.trim();
+  const parentPhone = document.getElementById('child_parentPhone').value.trim();
+  const parentEmail = document.getElementById('child_parentEmail').value.trim();
+  const childName = document.getElementById('child_name').value.trim();
+  const age = document.getElementById('child_age').value.trim();
+  const grade = document.getElementById('child_grade').value.trim();
+  const school = document.getElementById('child_school').value.trim();
+  const notes = document.getElementById('child_notes').value.trim();
+  const errEl = document.getElementById('child_err');
+  errEl.classList.remove('show');
+  if(!parentName || !parentPhone){ errEl.textContent = 'Enter the parent/guardian name and phone number.'; errEl.classList.add('show'); return; }
+  if(!childName){ errEl.textContent = "Enter the child's name."; errEl.classList.add('show'); return; }
+
+  const btn = document.getElementById('child_submitBtn');
+  const originalLabel = btn.textContent;
+  btn.disabled = true; btn.textContent = 'Sending…';
+
+  if(!data.children) data.children = [];
+  data.children.push({
+    id: uid('c'),
+    parentName, parentPhone, parentEmail,
+    childName, age, grade, school, notes,
+    submittedAt: Date.now()
+  });
+  await saveData();
+  btn.disabled = false; btn.textContent = originalLabel;
+  document.getElementById('child_ok').classList.add('show');
+  showToast('Child details sent!');
+  setTimeout(() => { childOverlay.classList.remove('open'); }, 1200);
+});
+

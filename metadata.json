@@ -1,0 +1,6 @@
+{
+  "name": "Gurukul Home Tuitions",
+  "description": "Home tutoring service in Kathmandu Valley connecting students with tutors",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

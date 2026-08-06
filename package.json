@@ -1,0 +1,17 @@
+{
+  "name": "gurukul-home-tuitions",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js",
+    "lint": "node --check server.js",
+    "build": "echo 'No build step required'"
+  },
+  "dependencies": {
+    "@neondatabase/serverless": "^0.10.4",
+    "@vercel/blob": "^0.27.0",
+    "express": "^5.2.1"
+  }
+}
