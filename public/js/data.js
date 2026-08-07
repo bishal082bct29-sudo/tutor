@@ -30,9 +30,9 @@ function defaultData(){
     profile:{
       companyName:'Gurukul Home Tuitions',
       tagline:'Where learning meets clarity.',
-      heroSub:"Gurukul Home Tuitions (gurukultution.vercel.app) connects students across Kathmandu Valley with experienced tutors for 1-on-1 Gurukul tution and small-group KTM tution — Nursery to Bachelor level, starting with 2 days of FREE demo classes!",
-      aboutTitle:'Why families choose Gurukul Home Tuitions — Top Tution Center',
-      aboutText:"Gurukul Home Tuitions (gurukultution.vercel.app) brings experienced and qualified teachers straight to your doorstep across Kathmandu Valley. Recognized as a top tution center in KTM, we focus on concept-based learning rather than rote memorisation, covering all subjects and levels from Nursery through Bachelor with 2 free trial classes.",
+      heroSub:"Gurukul Home Tuitions (gurukultuition.vercel.app) connects students across Kathmandu Valley with experienced tutors for 1-on-1 Gurukul tuition and small-group KTM tuition — Nursery to Bachelor level, starting with 2 days of FREE demo classes!",
+      aboutTitle:'Why families choose Gurukul Home Tuitions — Top Tuition Center',
+      aboutText:"Gurukul Home Tuitions (gurukultuition.vercel.app) brings experienced and qualified teachers straight to your doorstep across Kathmandu Valley. Recognized as a top tuition center in KTM, we focus on concept-based learning rather than rote memorisation, covering all subjects and levels from Nursery through Bachelor with 2 free trial classes.",
       phone:'+977-9801775074',
       email:'hello@gurukulhometuitions.example',
       address:'Kathmandu Valley, Nepal',
