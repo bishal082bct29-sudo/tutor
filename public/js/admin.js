@@ -296,8 +296,9 @@ function renderAdminApplications(){
           <b>${escapeHtml(a.name||'—')}</b>
           <span>Applied for: ${escapeHtml(a.vacancyTitle||'—')}${a.submittedAt ? ' · ' + new Date(a.submittedAt).toLocaleDateString() : ''}</span>
         </div>
-        <div class="row-actions">
-          ${a.phone ? `<a class="mini-btn" href="https://wa.me/${escapeAttr(a.phone.replace(/[^0-9]/g,''))}" target="_blank" rel="noopener">WhatsApp</a>` : ''}
+        <div class="row-actions" style="display:flex;gap:6px;flex-wrap:wrap;">
+          ${a.phone ? `<a class="mini-btn" href="https://api.whatsapp.com/send?phone=${escapeAttr(a.phone.replace(/[^0-9]/g,''))}&text=${encodeURIComponent(buildWhatsAppCvStatement(a))}" target="_blank" rel="noopener" style="background:#25D366;color:#fff;border:none;">📲 Send WhatsApp</a>` : ''}
+          <button class="mini-btn" onclick="copyAppCvStatement('${a.id}')">📋 Copy CV</button>
           <button class="mini-btn danger" onclick="deleteApplication('${a.id}')">Delete</button>
         </div>
       </div>
@@ -371,6 +372,16 @@ function deleteApplication(id){
     deleteBlob(app.paymentFileUrl);
   }
 }
+window.copyAppCvStatement = function(id){
+  const app = (data.applications||[]).find(a=>a.id===id);
+  if(!app) return;
+  const stmt = buildWhatsAppCvStatement(app);
+  navigator.clipboard.writeText(stmt).then(() => {
+    showToast('CV statement copied to clipboard!');
+  }).catch(() => {
+    showToast('Failed to copy text');
+  });
+};
 
 /* ---------- CHILDREN (admin — parent submissions) ---------- */
 function renderAdminChildren(){

@@ -231,3 +231,40 @@ function compressImageFile(file, callback){
   reader.readAsDataURL(file);
 }
 
+/* Helper to get formatted admin WhatsApp number */
+function getAdminWhatsAppNumber(){
+  const phone = (data && data.profile && data.profile.phone) || '+977-9801775074';
+  const clean = phone.replace(/[^0-9]/g, '');
+  return clean.length >= 8 ? clean : '9779801775074';
+}
+
+/* Helper to build formatted WhatsApp CV Statement & application details */
+function buildWhatsAppCvStatement(app){
+  if(!app) return '';
+  const subDate = app.submittedAt ? new Date(app.submittedAt).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' }) : new Date().toLocaleString();
+  const cvSummary = app.cvText ? app.cvText : (app.cvFileName ? `[Attached CV File: ${app.cvFileName}]` : 'Not specified');
+  const cvLinkStr = app.cvLink ? app.cvLink : (app.cvFileUrl && !app.cvFileUrl.startsWith('data:') ? app.cvFileUrl : '');
+  const payStr = app.paymentFileName ? `Screenshot: ${app.paymentFileName}` : (app.paymentFileUrl ? 'Payment screenshot attached' : 'Pending / Will pay before demo classes');
+
+  const lines = [
+    `🎓 *GURUKUL HOME TUITIONS - TEACHER VACANCY APPLICATION*`,
+    ``,
+    `📌 *Position Applied:* ${app.vacancyTitle || 'Tutor Vacancy'}`,
+    `👤 *Teacher Name:* ${app.name || 'N/A'}`,
+    `📞 *Phone Number:* ${app.phone || 'N/A'}`,
+    ``,
+    `📄 *CV / Resume Statement:*`,
+    `${cvSummary}`,
+    ``,
+    cvLinkStr ? `🔗 *CV / Portfolio Link:* ${cvLinkStr}` : null,
+    `🧾 *35% Commission Payment:* ${payStr}`,
+    `✍️ *Teacher Policy Agreed:* Yes (Signed as: ${app.signature || app.name || 'Applicant'})`,
+    `📅 *Submitted Date:* ${subDate}`,
+    ``,
+    `----------------------------------------`,
+    `Sent from Gurukul Home Tuitions (gurukultuition.vercel.app)`
+  ].filter(line => line !== null);
+
+  return lines.join('\n');
+}
+

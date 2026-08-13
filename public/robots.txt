@@ -1,5 +1,10 @@
 User-agent: *
 Allow: /
 
+User-agent: Googlebot
+Allow: /
+
+User-agent: Bingbot
+Allow: /
+
 Sitemap: https://gurukultuition.vercel.app/sitemap.xml
-Sitemap: https://www.gurukulhometuitions.com/sitemap.xml

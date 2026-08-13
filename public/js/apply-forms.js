@@ -32,6 +32,11 @@ function openApply(vacId){
   document.getElementById('apply_agree').checked = false;
   document.getElementById('apply_err').classList.remove('show');
   document.getElementById('apply_ok').classList.remove('show');
+  const waBox = document.getElementById('apply_wa_box');
+  if(waBox){
+    waBox.classList.add('hidden');
+    waBox.innerHTML = '';
+  }
   applyOverlay.classList.add('open');
 }
 document.getElementById('applyCloseBtn').addEventListener('click', () => applyOverlay.classList.remove('open'));
@@ -174,7 +179,7 @@ document.getElementById('apply_submitBtn').addEventListener('click', async () =>
   btn.textContent = 'Sending…';
   const v = data.vacancies.find(x=>x.id===vacId);
   if(!data.applications) data.applications = [];
-  data.applications.push({
+  const newApp = {
     id: uid('a'),
     vacancyId: vacId,
     vacancyTitle: v ? v.title : '',
@@ -184,15 +189,64 @@ document.getElementById('apply_submitBtn').addEventListener('click', async () =>
     signature: name,
     agreedAt: Date.now(),
     submittedAt: Date.now()
-  });
+  };
+  data.applications.push(newApp);
   saveData();
   renderVacancies();
   if(isAdmin) renderAdminApplications();
   btn.disabled = false; btn.textContent = originalLabel;
   document.getElementById('apply_ok').classList.add('show');
   showToast('Application sent!');
-  const closeDelay = errEl.classList.contains('show') ? 4000 : 1200;
-  setTimeout(() => { applyOverlay.classList.remove('open'); }, closeDelay);
+
+  // Build WhatsApp Application & CV statement
+  const waStatement = buildWhatsAppCvStatement(newApp);
+  const adminWaNum = getAdminWhatsAppNumber();
+  const teacherCleanPhone = phone.replace(/[^0-9]/g, '');
+
+  const waAdminUrl = `https://api.whatsapp.com/send?phone=${adminWaNum}&text=${encodeURIComponent(waStatement)}`;
+  const waTeacherUrl = teacherCleanPhone.length >= 8 ? `https://api.whatsapp.com/send?phone=${teacherCleanPhone}&text=${encodeURIComponent(waStatement)}` : null;
+
+  const waBox = document.getElementById('apply_wa_box');
+  if(waBox){
+    waBox.classList.remove('hidden');
+    waBox.innerHTML = `
+      <div style="font-size:14px;font-weight:700;color:var(--accent2);margin-bottom:6px;display:flex;align-items:center;gap:6px;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="#25D366"><path d="M12.04 2c-5.52 0-10 4.48-10 10 0 1.77.46 3.45 1.27 4.9L2 22l5.25-1.38A9.94 9.94 0 0 0 12.04 22c5.52 0 10-4.48 10-10s-4.48-10-10-10Zm5.85 14.2c-.25.7-1.45 1.34-2 1.42-.51.08-1.15.11-1.86-.12-.43-.14-.98-.32-1.69-.63-2.98-1.29-4.93-4.28-5.08-4.48-.15-.2-1.22-1.62-1.22-3.09 0-1.47.77-2.19 1.05-2.49.27-.3.6-.37.8-.37h.57c.18 0 .43-.03.66.5.25.6.85 2.07.92 2.22.07.15.12.33.02.53-.1.2-.15.32-.3.49-.15.17-.31.38-.44.51-.15.15-.3.31-.13.6.17.3.77 1.27 1.65 2.06 1.13 1.01 2.09 1.32 2.38 1.47.3.15.47.13.65-.07.18-.2.76-.87.96-1.17.2-.3.4-.25.67-.15.27.1 1.7.8 2 .95.3.15.5.22.57.35.08.13.08.72-.17 1.42Z"/></svg>
+        WhatsApp CV Statement &amp; Application Details
+      </div>
+      <p style="font-size:12.5px;color:var(--text-dim);margin-bottom:10px;line-height:1.5;">
+        Send your application and CV details directly to Gurukul Home Tuitions on WhatsApp for fast review and demo class assignment:
+      </p>
+      <div style="background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:10px;font-family:monospace;font-size:12px;color:var(--text);white-space:pre-wrap;max-height:130px;overflow-y:auto;margin-bottom:12px;" id="apply_wa_text_preview">${escapeHtml(waStatement)}</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <a href="${escapeAttr(waAdminUrl)}" target="_blank" rel="noopener" class="pill-btn" style="background:#25D366;color:#fff;text-decoration:none;font-size:13px;padding:8px 16px;display:inline-flex;align-items:center;gap:6px;">
+          📲 Send to Gurukul Tuition WhatsApp
+        </a>
+        ${waTeacherUrl ? `
+        <a href="${escapeAttr(waTeacherUrl)}" target="_blank" rel="noopener" class="pill-btn" style="background:var(--bg);border:1px solid var(--accent2);color:var(--accent2);text-decoration:none;font-size:13px;padding:8px 16px;display:inline-flex;align-items:center;gap:6px;">
+          📱 Send to My Phone (${escapeHtml(phone)})
+        </a>` : ''}
+        <button type="button" class="mini-btn" id="apply_copy_wa_btn" style="padding:8px 14px;font-size:13px;">
+          📋 Copy Details
+        </button>
+      </div>
+    `;
+
+    document.getElementById('apply_copy_wa_btn').addEventListener('click', () => {
+      navigator.clipboard.writeText(waStatement).then(() => {
+        showToast('Application & CV details copied to clipboard!');
+      }).catch(() => {
+        showToast('Failed to copy text');
+      });
+    });
+  }
+
+  // Auto open Admin WhatsApp in new tab so pre-filled message launches immediately
+  try {
+    window.open(waAdminUrl, '_blank');
+  } catch(e) {
+    console.warn('WhatsApp auto-open popup blocked by browser, link provided in UI.', e);
+  }
 });
 
 /* ---------- REGISTER CHILD (public — parents adding their child's details) ---------- */
