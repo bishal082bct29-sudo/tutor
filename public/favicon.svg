@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#5650bf" />
+      <stop offset="50%" stop-color="#403d94" />
+      <stop offset="100%" stop-color="#28256e" />
+    </linearGradient>
+    <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffe270" />
+      <stop offset="100%" stop-color="#f59e0b" />
+    </linearGradient>
+    <linearGradient id="capGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" />
+      <stop offset="100%" stop-color="#e2e8f0" />
+    </linearGradient>
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#000" flood-opacity="0.3"/>
+    </filter>
+  </defs>
+
+  <!-- Background rounded squircle / circle -->
+  <rect width="64" height="64" rx="16" fill="url(#bgGrad)" />
+  <rect x="1.5" y="1.5" width="61" height="61" rx="14.5" fill="none" stroke="url(#goldGrad)" stroke-width="1.5" stroke-opacity="0.6"/>
+
+  <!-- Center emblem group -->
+  <g filter="url(#glow)">
+    <!-- Graduation Cap Top Diamond -->
+    <polygon points="32,13 51,21.5 32,30 13,21.5" fill="url(#capGrad)" />
+
+    <!-- Cap Under-band -->
+    <path d="M20,25.5 L20,33 C20,37.5 44,37.5 44,33 L44,25.5 C40,28.5 24,28.5 20,25.5 Z" fill="#cbd5e1" />
+
+    <!-- Tassel / String -->
+    <path d="M47,21.5 L49,34" stroke="url(#goldGrad)" stroke-width="2" stroke-linecap="round" />
+    <circle cx="49" cy="35" r="1.8" fill="#f59e0b" />
+
+    <!-- Open Book at bottom -->
+    <path d="M16,40 C24,37 31,39 32,41 C33,39 40,37 48,40 L48,49 C40,46 33,48 32,50 C31,48 24,46 16,49 Z" fill="url(#goldGrad)" />
+    <!-- Book Spine Divider -->
+    <line x1="32" y1="41" x2="32" y2="50" stroke="#b45309" stroke-width="1.5" stroke-linecap="round" />
+  </g>
+</svg>

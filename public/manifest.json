@@ -1,0 +1,28 @@
+{
+  "name": "gurukultuition - Gurukul Home Tuitions",
+  "short_name": "Gurukul Tuition",
+  "description": "Top Gurukul tuition & KTM home tutors in Kathmandu Valley",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0d0f17",
+  "theme_color": "#403d94",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}
