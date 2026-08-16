@@ -113,7 +113,7 @@ document.getElementById('apply_submitBtn').addEventListener('click', async () =>
   let cvFileUrl = '', cvFileName = '';
   let paymentFileUrl = '', paymentFileName = '';
   let cvUploadFailed = false, paymentUploadFailed = false;
-  const UPLOAD_TIMEOUT_MS = 2500;
+  const UPLOAD_TIMEOUT_MS = 15000;
   function readFileAsDataUrl(file){
     return new Promise((resolve, reject) => {
       if(file.type && file.type.startsWith('image/')){
@@ -152,11 +152,11 @@ document.getElementById('apply_submitBtn').addEventListener('click', async () =>
   if(cvFile){
     try{
       btn.textContent = 'Uploading CV…';
-      const blob = await uploadWithTimeout(cvFile, 'cv-uploads', UPLOAD_TIMEOUT_MS);
+      const blob = await uploadWithTimeout(cvFile, 'gurukul/resumes', UPLOAD_TIMEOUT_MS);
       cvFileUrl = blob.url;
       cvFileName = cvFile.name;
     }catch(e){
-      console.warn('Vercel Blob upload for CV failed/unconfigured, falling back to Data URL.', e);
+      console.warn('Upload for CV timed out or failed, saving fallback Data URL.', e);
       try {
         cvFileUrl = await readFileAsDataUrl(cvFile);
         cvFileName = cvFile.name;
@@ -169,11 +169,11 @@ document.getElementById('apply_submitBtn').addEventListener('click', async () =>
   if(paymentFile){
     try{
       btn.textContent = 'Uploading payment screenshot…';
-      const blob = await uploadWithTimeout(paymentFile, 'payment-screenshots', UPLOAD_TIMEOUT_MS);
+      const blob = await uploadWithTimeout(paymentFile, 'gurukul/payments', UPLOAD_TIMEOUT_MS);
       paymentFileUrl = blob.url;
       paymentFileName = paymentFile.name;
     }catch(e){
-      console.warn('Vercel Blob upload for payment screenshot failed/unconfigured, falling back to Data URL.', e);
+      console.warn('Upload for payment screenshot timed out or failed, saving fallback Data URL.', e);
       try {
         paymentFileUrl = await readFileAsDataUrl(paymentFile);
         paymentFileName = paymentFile.name;

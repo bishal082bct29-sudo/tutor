@@ -89,7 +89,7 @@ document.getElementById('gal_bulkUpload').addEventListener('change', async (e) =
   progressEl.textContent = `Uploading ${files.length} photo${files.length===1?'':'s'}…`;
   let done = 0;
   const results = await Promise.all(files.map(async (file, idx) => {
-    const uploadedUrl = await uploadToCloudinaryOrStorage(file, 'gurukul_gallery', `gal_${Date.now()}_${idx}`);
+    const uploadedUrl = await uploadToCloudinaryOrStorage(file, 'gurukul/gallery', `gal_${Date.now()}_${idx}`);
     done++;
     progressEl.textContent = `Uploaded ${done} of ${files.length}…`;
     return uploadedUrl;

@@ -210,12 +210,22 @@ function deleteBlob(url){
 window.deleteMedia = deleteBlob;
 
 /* Uploads an image/file to Cloudinary via server-side /api/upload with fallback */
-async function uploadToCloudinaryOrStorage(fileOrDataUrl, folder = 'gurukultuition', filename = '') {
+async function uploadToCloudinaryOrStorage(fileOrDataUrl, folder = 'gurukul', filename = '') {
   try {
     let payload = fileOrDataUrl;
     if (fileOrDataUrl instanceof File || fileOrDataUrl instanceof Blob) {
-      payload = await new Promise((resolve) => compressImageFile(fileOrDataUrl, resolve));
+      if (fileOrDataUrl.type && fileOrDataUrl.type.startsWith('image/')) {
+        payload = await new Promise((resolve) => compressImageFile(fileOrDataUrl, resolve));
+      } else {
+        payload = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result);
+          reader.onerror = reject;
+          reader.readAsDataURL(fileOrDataUrl);
+        });
+      }
     }
+
     const res = await fetch('/api/upload', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -225,15 +235,27 @@ async function uploadToCloudinaryOrStorage(fileOrDataUrl, folder = 'gurukultuiti
         filename: filename || ('upload_' + Date.now())
       })
     });
+
     if (!res.ok) {
-      throw new Error(`Upload failed with HTTP ${res.status}`);
+      const errJson = await res.json().catch(() => ({}));
+      console.warn('Server upload response not ok:', res.status, errJson);
+      throw new Error(errJson.error || `Upload failed with HTTP ${res.status}`);
     }
+
     const result = await res.json();
     return result.url || payload;
   } catch (err) {
     console.warn('Cloudinary/API upload fallback:', err);
     if (typeof fileOrDataUrl === 'string') return fileOrDataUrl;
-    return await new Promise((resolve) => compressImageFile(fileOrDataUrl, resolve));
+    if (fileOrDataUrl.type && fileOrDataUrl.type.startsWith('image/')) {
+      return await new Promise((resolve) => compressImageFile(fileOrDataUrl, resolve));
+    }
+    return await new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = () => resolve('');
+      reader.readAsDataURL(fileOrDataUrl);
+    });
   }
 }
 window.uploadToCloudinaryOrStorage = uploadToCloudinaryOrStorage;
