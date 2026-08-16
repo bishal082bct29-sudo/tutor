@@ -198,8 +198,7 @@ setInterval(pollForChanges, POLL_INTERVAL_MS);
 
 function uid(prefix){ return prefix + Date.now().toString(36) + Math.floor(Math.random()*1000); }
 
-/* Deleting a Blob needs the write token, which only exists server-side,
-   so this calls the /api/delete-blob route instead of the SDK directly. */
+/* Deleting an image/blob calls the /api/delete-blob route which handles Cloudinary & Vercel Blob */
 function deleteBlob(url){
   if(!url) return;
   fetch('/api/delete-blob', {
@@ -208,11 +207,54 @@ function deleteBlob(url){
     body: JSON.stringify({ url })
   }).catch(()=>{});
 }
+window.deleteMedia = deleteBlob;
+
+/* Uploads an image/file to Cloudinary via server-side /api/upload with fallback */
+async function uploadToCloudinaryOrStorage(fileOrDataUrl, folder = 'gurukultuition', filename = '') {
+  try {
+    let payload = fileOrDataUrl;
+    if (fileOrDataUrl instanceof File || fileOrDataUrl instanceof Blob) {
+      payload = await new Promise((resolve) => compressImageFile(fileOrDataUrl, resolve));
+    }
+    const res = await fetch('/api/upload', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        file: payload,
+        folder: folder,
+        filename: filename || ('upload_' + Date.now())
+      })
+    });
+    if (!res.ok) {
+      throw new Error(`Upload failed with HTTP ${res.status}`);
+    }
+    const result = await res.json();
+    return result.url || payload;
+  } catch (err) {
+    console.warn('Cloudinary/API upload fallback:', err);
+    if (typeof fileOrDataUrl === 'string') return fileOrDataUrl;
+    return await new Promise((resolve) => compressImageFile(fileOrDataUrl, resolve));
+  }
+}
+window.uploadToCloudinaryOrStorage = uploadToCloudinaryOrStorage;
+
+/* Check active storage and database backend status */
+async function getBackendIntegrationStatus() {
+  try {
+    const res = await fetch('/api/upload');
+    if (res.ok) {
+      return await res.json();
+    }
+  } catch (e) {}
+  return { cloudinary: false, vercelBlob: false, neonDatabase: false, provider: 'local' };
+}
+window.getBackendIntegrationStatus = getBackendIntegrationStatus;
 
 /* Resizes + compresses an image file client-side and returns a JPEG data URL,
    so gallery/logo photos can be stored inline in the JSONB data row in Neon
-   without needing a separate Blob upload for every small image. */
+   or sent efficiently to Cloudinary. */
 function compressImageFile(file, callback){
+
   const reader = new FileReader();
   reader.onload = function(ev){
     const img = new Image();

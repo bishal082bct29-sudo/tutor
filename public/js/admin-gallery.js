@@ -49,29 +49,36 @@ window.chooseLogoFromGallery = (id) => {
   setTimeout(()=>ok.classList.remove('show'), 1500);
   showToast('Logo updated');
 };
-document.getElementById('logo_file').addEventListener('change', (e) => {
+document.getElementById('logo_file').addEventListener('change', async (e) => {
   const file = e.target.files && e.target.files[0];
   if(!file) return;
   if(!file.type.startsWith('image/')){ showToast('Please choose an image file'); e.target.value = ''; return; }
-  showToast('Adding logo…');
-  compressImageFile(file, async (dataUrl) => {
-    data.profile.logoUrl = dataUrl;
+  showToast('Uploading logo to Cloudinary/storage…');
+  try {
+    const uploadedUrl = await uploadToCloudinaryOrStorage(file, 'gurukul_logo', 'site_logo');
+    data.profile.logoUrl = uploadedUrl;
     await saveData();
     renderLogoAdmin();
     renderLogoMark();
     const ok = document.getElementById('logo_ok');
-    ok.classList.add('show');
-    setTimeout(()=>ok.classList.remove('show'), 1500);
+    if (ok) ok.classList.add('show');
+    setTimeout(()=> ok && ok.classList.remove('show'), 1500);
     showToast('Logo updated');
-    e.target.value = '';
-  });
+  } catch (err) {
+    showToast('Error uploading logo');
+  }
+  e.target.value = '';
 });
 document.getElementById('logo_removeBtn').addEventListener('click', () => {
+  const oldLogo = data.profile.logoUrl;
   data.profile.logoUrl = '';
   saveData();
   renderLogoAdmin();
   renderLogoMark();
   showToast('Logo reset to initials');
+  if (oldLogo && (oldLogo.includes('cloudinary.com') || oldLogo.includes('blob.vercel-storage.com'))) {
+    deleteBlob(oldLogo);
+  }
 });
 
 document.getElementById('gal_bulkUpload').addEventListener('change', async (e) => {
@@ -79,23 +86,23 @@ document.getElementById('gal_bulkUpload').addEventListener('change', async (e) =
   if(files.length === 0) return;
   const progressEl = document.getElementById('gal_bulkProgress');
   progressEl.style.display = 'block';
-  progressEl.textContent = `Adding ${files.length} photo${files.length===1?'':'s'}…`;
+  progressEl.textContent = `Uploading ${files.length} photo${files.length===1?'':'s'}…`;
   let done = 0;
-  const results = await Promise.all(files.map(file => new Promise(resolve => {
-    compressImageFile(file, (dataUrl) => {
-      done++;
-      progressEl.textContent = `Adding ${done} of ${files.length}…`;
-      resolve(dataUrl);
-    });
-  })));
-  results.forEach(dataUrl => data.gallery.push({ id: uid('p'), url: dataUrl, caption: '' }));
+  const results = await Promise.all(files.map(async (file, idx) => {
+    const uploadedUrl = await uploadToCloudinaryOrStorage(file, 'gurukul_gallery', `gal_${Date.now()}_${idx}`);
+    done++;
+    progressEl.textContent = `Uploaded ${done} of ${files.length}…`;
+    return uploadedUrl;
+  }));
+  results.forEach(uploadedUrl => data.gallery.push({ id: uid('p'), url: uploadedUrl, caption: '' }));
   await saveData();
   renderAdminGallery();
   renderAll();
   progressEl.style.display = 'none';
   e.target.value = '';
-  showToast(`${results.length} photo${results.length===1?'':'s'} added`);
+  showToast(`${results.length} photo${results.length===1?'':'s'} saved`);
 });
+
 
 document.getElementById('gal_addBtn').addEventListener('click', () => openGalleryEdit(null));
 document.getElementById('galEditCloseBtn').addEventListener('click', () => galEditOverlay.classList.remove('open'));
@@ -140,7 +147,7 @@ window.deleteGallery = (id) => {
   if(removed && data.profile.logoUrl === removed.url){ data.profile.logoUrl = ''; }
   saveData(); renderAdminGallery(); renderAll();
   showToast('Photo deleted');
-  if(removed && removed.url && removed.url.includes('.public.blob.vercel-storage.com')){
+  if(removed && removed.url && (removed.url.includes('cloudinary.com') || removed.url.includes('blob.vercel-storage.com'))){
     deleteBlob(removed.url);
   }
 };
@@ -158,8 +165,12 @@ document.getElementById('gal_saveBtn').addEventListener('click', async () => {
   const id = document.getElementById('gal_id').value;
   let url = linkUrl;
   if(gal_pendingFile){
-    btn.disabled = true; btn.textContent = 'Adding photo…';
-    url = await new Promise(resolve => compressImageFile(gal_pendingFile, resolve));
+    btn.disabled = true; btn.textContent = 'Uploading photo…';
+    try {
+      url = await uploadToCloudinaryOrStorage(gal_pendingFile, 'gurukul_gallery', `gal_${Date.now()}`);
+    } catch (err) {
+      url = await new Promise(resolve => compressImageFile(gal_pendingFile, resolve));
+    }
   }
   const obj = { id: id || uid('p'), url, caption: document.getElementById('gal_caption').value.trim() };
   if(id){
@@ -176,6 +187,7 @@ document.getElementById('gal_saveBtn').addEventListener('click', async () => {
   galEditOverlay.classList.remove('open');
   showToast('Photo saved');
 });
+
 
 /* ---------- EXTRA INFO (admin) ---------- */
 const infoEditOverlay = document.getElementById('infoEditOverlay');

@@ -127,13 +127,28 @@ document.getElementById('apply_submitBtn').addEventListener('click', async () =>
     });
   }
 
-  function uploadWithTimeout(file, pathPrefix, ms){
+  async function uploadWithTimeout(file, pathPrefix, ms){
+    // Try Cloudinary / server-side upload first
+    try {
+      const serverUploadPromise = uploadToCloudinaryOrStorage(file, pathPrefix, file.name);
+      const res = await Promise.race([
+        serverUploadPromise,
+        new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), ms))
+      ]);
+      if (res && typeof res === 'string' && (res.startsWith('http') || res.startsWith('data:'))) {
+        return { url: res };
+      }
+    } catch(err) {
+      console.warn('Cloudinary upload attempt note:', err);
+    }
+
     const filename = pathPrefix + '/' + uid(pathPrefix) + '-' + file.name.replace(/[^a-zA-Z0-9.\-_]/g,'_');
     return Promise.race([
       window.__vercelBlobUpload ? window.__vercelBlobUpload(filename, file, { access: 'public', handleUploadUrl: '/api/upload' }) : Promise.reject(new Error('Vercel Blob not initialized')),
       new Promise((_, reject) => setTimeout(() => reject(Object.assign(new Error('timeout'), {code:'storage/timeout'})), ms))
     ]);
   }
+
   if(cvFile){
     try{
       btn.textContent = 'Uploading CV…';

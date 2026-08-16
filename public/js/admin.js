@@ -19,8 +19,35 @@ function openAdminPanel(){
   document.getElementById('pw_recoveryPhone').value = data.profile.recoveryPhone || '';
   setDobValue('pw_recoveryDob', data.profile.recoveryDob || '');
   resetPwChangeFlow();
+  updateAdminBackendStatus();
   adminOverlay.classList.add('open');
 }
+
+async function updateAdminBackendStatus() {
+  const dbEl = document.getElementById('status_db');
+  const mediaEl = document.getElementById('status_media');
+  if (!dbEl || !mediaEl) return;
+  try {
+    const status = await getBackendIntegrationStatus();
+    if (status.neonDatabase) {
+      dbEl.innerHTML = '<span style="color:#10b981;">🟢 Neon Postgres Active</span>';
+    } else {
+      dbEl.innerHTML = '<span style="color:#f59e0b;">🟠 Local/Fallback (set DATABASE_URL)</span>';
+    }
+
+    if (status.cloudinary) {
+      mediaEl.innerHTML = '<span style="color:#10b981;">🟢 Cloudinary Active</span>';
+    } else if (status.vercelBlob) {
+      mediaEl.innerHTML = '<span style="color:#3b82f6;">🔵 Vercel Blob Active</span>';
+    } else {
+      mediaEl.innerHTML = '<span style="color:#f59e0b;">🟠 Local/Data-URL (set CLOUDINARY_URL)</span>';
+    }
+  } catch (err) {
+    if (dbEl) dbEl.textContent = 'Active';
+    if (mediaEl) mediaEl.textContent = 'Active';
+  }
+}
+
 
 /* ---------- PROFILE ---------- */
 function fillProfileForm(){

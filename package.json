@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node server.js",
     "dev": "node server.js",
-    "lint": "node --check server.js",
+    "lint": "node --check server.js && node --check api/data.js && node --check api/upload.js && node --check api/delete-blob.js && node --check lib/db.js",
     "build": "echo 'No build step required'"
   },
   "engines": {
@@ -15,6 +15,7 @@
   "dependencies": {
     "@neondatabase/serverless": "^0.10.4",
     "@vercel/blob": "^0.27.0",
+    "cloudinary": "^2.10.0",
     "express": "^5.2.1"
   }
 }

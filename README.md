@@ -1,61 +1,59 @@
-# Gurukul Home Tuitions — Vercel + Neon + Blob
+# Gurukul Home Tuitions — Vercel + Neon Postgres + Cloudinary
 
-This replaces the old Firebase (Firestore + Storage) backend with:
+This application is powered by:
 
-- **Neon** (serverless Postgres) — holds all site data as a single JSONB row,
-  the same shape the old Firestore document used.
-- **Vercel Functions** (`/api/*`) — the browser never talks to Neon directly;
-  these serverless routes sit in between.
-- **Vercel Blob** — stores uploaded CVs and payment screenshots.
-- **Polling instead of push** — Postgres has no equivalent of Firestore's
-  `onSnapshot`. The page polls `/api/data` every 4 seconds so other open
-  tabs/devices still catch up to changes within a few seconds.
+- **Neon** (serverless Postgres) — stores all dynamic website data (profile, groups, vacancies, teacher applications, parent submissions, extra info) in the `site_data` JSONB table with automatic table creation if not already created.
+- **Cloudinary** — hosts and optimizes all image and media uploads (site logo, gallery photos, teacher CVs, and commission payment screenshots).
+- **Vercel Serverless Functions** (`/api/*`) — securely proxies all database queries and media uploads server-side without exposing credentials to the client.
+- **Near-Live Synchronization** — polls `/api/data` periodically so updates made by the admin or applicants are synchronized across open sessions.
 
-## One-time setup
+---
 
-1. **Create the Neon database**
-   - Sign up at [neon.tech](https://neon.tech), create a project, copy the
-     connection string (it looks like
-     `postgresql://user:pass@ep-xxxx.neon.tech/dbname?sslmode=require`).
-   - Run `schema.sql` against it — easiest via the Neon SQL Editor in their
-     dashboard (paste the file contents and run), or locally:
-     ```
-     psql "$DATABASE_URL" -f schema.sql
-     ```
+## 🚀 Environment Variables (Vercel & Local)
 
-2. **Push this project to a Git repo, then import it into Vercel**
-   (vercel.com → Add New → Project → import your repo).
+In **Vercel Dashboard → Project → Settings → Environment Variables**, configure:
 
-3. **Add environment variables** in Vercel → Project → Settings →
-   Environment Variables:
-   - `DATABASE_URL` — the Neon connection string from step 1.
-   - `BLOB_READ_WRITE_TOKEN` — go to Vercel → your project → Storage →
-     Create Database → **Blob**. Connecting a Blob store to the project
-     sets this automatically; no need to type it in by hand.
+### 1. Neon Postgres Database
+- `DATABASE_URL` — your Neon connection string (e.g. `postgresql://user:password@ep-xyz.neon.tech/dbname?sslmode=require`)
 
-4. **Redeploy** (Vercel → Deployments → Redeploy, or just push a commit).
+### 2. Cloudinary Media Storage
+**Option A (Recommended):**
+- `CLOUDINARY_URL` — your full Cloudinary connection URL (e.g. `cloudinary://API_KEY:API_SECRET@CLOUD_NAME`)
 
-That's it — visiting the deployed URL should now load and save data through
-Neon, and file uploads should land in Vercel Blob.
+**Option B (Separate Keys):**
+- `CLOUDINARY_CLOUD_NAME` — your Cloudinary cloud name
+- `CLOUDINARY_API_KEY` — your Cloudinary API key
+- `CLOUDINARY_API_SECRET` — your Cloudinary API secret
 
-## Local development
+---
 
+## 🛠️ Database Schema
+
+The database table `site_data` is automatically initialized on the first request. You can also run `schema.sql` manually in the **Neon SQL Editor**:
+
+```sql
+CREATE TABLE IF NOT EXISTS site_data (
+  id         TEXT PRIMARY KEY DEFAULT 'main',
+  data       JSONB NOT NULL,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
 ```
+
+---
+
+## 💻 Local Development
+
+```bash
 npm install
-npx vercel link      # link this folder to your Vercel project
-npx vercel env pull  # pulls DATABASE_URL / BLOB_READ_WRITE_TOKEN into .env.local
-npx vercel dev        # runs the site + API routes locally
+npm run dev
 ```
 
-## Notes / things you may want to change later
+The dev server will run on `http://localhost:3000`.
 
-- **Uploads are currently open to anyone** who loads the apply form —
-  same as the old open Firebase Storage rules. `api/upload.js` is the place
-  to add real auth/rate-limiting if you want to restrict it.
-- **Gallery photos and the logo are still stored as compressed base64
-  inside the JSONB row**, not in Blob — this mirrors the old Firestore
-  behaviour and keeps things simple. If your gallery grows large, moving
-  those to Blob too (like CVs/screenshots) would keep the database row small.
-- **"Live" sync is polling, not push.** If you want instant updates instead
-  of ~4-second lag, you'd need to add a pub/sub service (e.g. Pusher, Ably)
-  — Neon/Postgres alone doesn't provide that on Vercel's serverless runtime.
+---
+
+## 🔐 Admin Panel
+
+- Log in via the footer admin link or top navigation.
+- Check live status indicators for **Neon Database** and **Cloudinary**.
+- Manage company profile, tuition groups, vacancies, teacher applicant verifications, WhatsApp statement generations, and photo gallery.

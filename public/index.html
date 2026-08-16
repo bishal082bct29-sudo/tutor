@@ -800,7 +800,16 @@
 
     <!-- PROFILE -->
     <div class="admin-pane active" id="profilePane">
+      <div id="admin_backend_status" style="margin-bottom:16px;padding:12px 14px;background:var(--bg);border:1px solid var(--line);border-radius:10px;font-size:12.5px;color:var(--text-dim);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+        <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap;">
+          <span>🗄️ <b>Database:</b> <span id="status_db" style="color:var(--accent2);">Checking…</span></span>
+          <span>☁️ <b>Media (Cloudinary):</b> <span id="status_media" style="color:var(--accent2);">Checking…</span></span>
+        </div>
+        <span style="font-size:11.5px;opacity:0.8;">Vercel + Neon + Cloudinary</span>
+      </div>
+
       <div class="field"><label>Company name</label><input id="pf_companyName"></div>
+
       <div class="field"><label>Tagline (shown under logo)</label><input id="pf_tagline"></div>
       <div class="field"><label>Hero subtitle</label><textarea id="pf_heroSub"></textarea></div>
       <div class="field"><label>About title</label><input id="pf_aboutTitle"></div>
