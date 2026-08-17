@@ -7,7 +7,14 @@ function getGenAI() {
     if (!apiKey) {
       return null;
     }
-    aiClient = new GoogleGenAI({ apiKey });
+    aiClient = new GoogleGenAI({
+      apiKey,
+      httpOptions: {
+        headers: {
+          'User-Agent': 'aistudio-build',
+        }
+      }
+    });
   }
   return aiClient;
 }
@@ -46,18 +53,39 @@ export default async function handler(req, res) {
       });
     }
 
-    const prompt = `Extract all text from this tuition job image/flyer and extract tuition vacancy details for Gurukul Home Tuitions in Kathmandu Valley, Nepal.
-Extract:
-- rawText: Complete OCR transcribed text
-- title: Clean vacancy title (e.g. "Grade 10 SEE Mathematics Tutor")
-- subject: Subject(s) (e.g. "Comp. & Opt. Mathematics", "Science", "Physics")
-- level: Grade/level (e.g. "Class 9 & 10 (SEE)", "+2 Science", "Class 1–5")
-- type: "Part-time" | "Full-time" | "Weekend only" | "Morning Batch" | "Evening Batch" | "Online"
-- location: Kathmandu Valley location (e.g. "Baneshwor, Kathmandu", "Kumaripati, Lalitpur")
-- salary: Monthly salary/fee (e.g. "NPR 14,000 / month")
-- schedule: Timing/hours (e.g. "5:00 PM – 6:30 PM")`;
+    const prompt = `You are a high-precision OCR and document analysis engine for Gurukul Home Tuitions in Kathmandu Valley, Nepal.
+Your task is to transcribe and extract EXACT details from this tuition vacancy flyer image.
 
-    const modelsToTry = ['gemini-2.5-flash', 'gemini-2.0-flash'];
+CRITICAL INSTRUCTIONS:
+1. TITLE:
+   - Extract the exact headline/title printed on the flyer (e.g. "Home Tuition Requirement", "Class 10 Opt. Math Tutor", "Male/Female Tutor Needed").
+   - If there is no single explicit headline, construct a clean title strictly using the exact extracted Class, Subject, and Location: "[Class] [Subject] Tutor – [Location]".
+
+2. CLASS / GRADE / LEVEL (MUST BE EXACT):
+   - Extract the exact class/grade printed on the image (e.g., "Class 10 (SEE)", "Class 9", "Class 8 (BLE)", "Class 7", "Class 6", "Class 5", "Class 4", "Class 3", "Class 2", "Class 1", "Class 1–5", "Class 6–8", "Nursery", "LKG", "UKG", "Playgroup", "+2 Science", "+2 Management", "Grade 11 & 12", "Bachelor Level", "A-Levels / CBSE").
+   - Do NOT omit the class number or use generic phrases if a specific class is present.
+
+3. LOCATION (MUST BE EXACT):
+   - Extract the exact location, neighborhood, area, landmark, or street printed on the flyer (e.g., "New Baneshwor, Kathmandu", "Kumaripati (near Mahayan), Lalitpur", "Kalanki, Kathmandu", "Satdobato, Lalitpur", "Koteshwor", "Chabahil", "Boudha", "Bhaisepati", "Sanepa", "Jhamsikhel", "Thimi, Bhaktapur", "Suryabinayak", "Baluwatar", "Maharajgunj", "Kirtipur", "Gwarko", "Imadol", etc.).
+   - Include the specific area and landmark if printed.
+
+4. SALARY / FEE / PAY (MUST BE EXACT):
+   - Extract the exact salary / fee amount as printed on the flyer (e.g., "Rs. 15,000 / month", "NPR 14,000 / month", "Rs. 12,000 – 15,000 / mo", "Rs. 8,000 / month", "Rs. 20,000").
+   - Preserve currency notation (Rs. / NPR) and time frame (/ month).
+
+5. TIME / SCHEDULE / TIMING (MUST BE EXACT):
+   - Extract the exact time, hours, or shift printed on the flyer (e.g., "6:00 AM – 7:30 AM", "5:00 PM – 6:30 PM", "6:30 AM (Morning)", "Evening 1.5 Hours", "6 Days a Week", "Morning Batch").
+
+6. SUBJECT(S) (MUST BE EXACT):
+   - Extract the exact subjects printed on the flyer (e.g., "Comp. & Opt. Mathematics", "Science", "Physics & Chemistry", "Accountancy", "Economics", "All Subjects", "English", "Nepali", "Social Studies").
+
+7. EMPLOYMENT TYPE:
+   - Select the most accurate: "Part-time" | "Full-time" | "Weekend only" | "Morning Batch" | "Evening Batch" | "Online".
+
+8. RAW TEXT:
+   - Provide the complete verbatim transcription of every word, number, phone number, and note visible on the flyer.`;
+
+    const modelsToTry = ['gemini-3.6-flash', 'gemini-flash-latest', 'gemini-3.7-flash'];
     let response = null;
     let lastError = null;
 
@@ -83,20 +111,25 @@ Extract:
           ],
           config: {
             temperature: 0.1,
+            maxOutputTokens: 1024,
+            thinkingConfig: {
+              thinkingBudget: 0
+            },
             responseMimeType: 'application/json',
             responseSchema: {
               type: Type.OBJECT,
               properties: {
-                rawText: { type: Type.STRING },
-                title: { type: Type.STRING },
-                subject: { type: Type.STRING },
-                level: { type: Type.STRING },
-                type: { type: Type.STRING },
-                location: { type: Type.STRING },
-                salary: { type: Type.STRING },
-                schedule: { type: Type.STRING }
+                rawText: { type: Type.STRING, description: 'All raw OCR text transcribed from the image' },
+                title: { type: Type.STRING, description: 'Descriptive title with class, subject and location' },
+                subject: { type: Type.STRING, description: 'Tutoring subject(s)' },
+                level: { type: Type.STRING, description: 'Exact class / grade / level (e.g. Class 10 (SEE), Grade 7, +2 Science)' },
+                type: { type: Type.STRING, description: 'Part-time | Full-time | Weekend only | Morning Batch | Evening Batch | Online' },
+                location: { type: Type.STRING, description: 'Specific area / neighborhood in Kathmandu Valley' },
+                salary: { type: Type.STRING, description: 'Salary / monthly fee (e.g. NPR 15,000 / month)' },
+                schedule: { type: Type.STRING, description: 'Timing or schedule (e.g. 5:00 PM - 6:30 PM)' },
+                description: { type: Type.STRING, description: 'Summary of vacancy requirements' }
               },
-              required: ['rawText', 'title', 'subject']
+              required: ['rawText', 'title', 'subject', 'level', 'location']
             }
           }
         });

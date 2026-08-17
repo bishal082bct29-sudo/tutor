@@ -27,8 +27,10 @@ function openApply(vacId){
   document.getElementById('apply_cvFileName').textContent = '';
   document.getElementById('apply_paymentFile').value = '';
   document.getElementById('apply_paymentFileName').textContent = '';
-  document.getElementById('apply_cvText').value = '';
-  document.getElementById('apply_cvLink').value = '';
+  const cvTextEl = document.getElementById('apply_cvText');
+  if(cvTextEl) cvTextEl.value = '';
+  const cvLinkEl = document.getElementById('apply_cvLink');
+  if(cvLinkEl) cvLinkEl.value = '';
   document.getElementById('apply_agree').checked = false;
   document.getElementById('apply_err').classList.remove('show');
   document.getElementById('apply_ok').classList.remove('show');
@@ -96,14 +98,14 @@ document.getElementById('apply_submitBtn').addEventListener('click', async () =>
   const name = document.getElementById('apply_name').value.trim();
   const phone = document.getElementById('apply_phone').value.trim();
   const cvFile = document.getElementById('apply_cvFile').files[0] || null;
-  const cvText = document.getElementById('apply_cvText').value.trim();
-  const cvLink = document.getElementById('apply_cvLink').value.trim();
+  const cvText = document.getElementById('apply_cvText') ? document.getElementById('apply_cvText').value.trim() : '';
+  const cvLink = document.getElementById('apply_cvLink') ? document.getElementById('apply_cvLink').value.trim() : '';
   const paymentFile = document.getElementById('apply_paymentFile').files[0] || null;
   const agreed = document.getElementById('apply_agree').checked;
   const errEl = document.getElementById('apply_err');
   errEl.classList.remove('show');
   if(!name || !phone){ errEl.textContent = 'Enter your name and phone number.'; errEl.classList.add('show'); return; }
-  if(!cvFile && !cvText && !cvLink){ errEl.textContent = 'Upload a CV file, paste a CV summary, or add a CV link.'; errEl.classList.add('show'); return; }
+  if(!cvFile && !cvText && !cvLink){ errEl.textContent = 'Please select and upload your CV (PDF or image).'; errEl.classList.add('show'); return; }
   if(!agreed){ errEl.textContent = "Please read and agree to the Teacher's Policy — Terms & Conditions above to continue."; errEl.classList.add('show'); return; }
 
   const btn = document.getElementById('apply_submitBtn');

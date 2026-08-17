@@ -56,8 +56,8 @@ function renderGroups(){
     return `
       <div class="card group-card class-fee-card">
         <div class="fee-card-badge-row">
-          <span class="level-badge">📍 ${levelText}</span>
-          <span class="demo-chip">✨ 2 Days FREE Demo</span>
+          <span class="level-badge">${levelText}</span>
+          <span class="demo-chip">✨ 2-Day Free Trial</span>
         </div>
 
         <div class="fee-card-header">
@@ -67,7 +67,7 @@ function renderGroups(){
 
         <div class="fee-highlight-box">
           <div class="fee-main">${feeText}</div>
-          <div class="fee-sub">Monthly Tuition Fee • Kathmandu Valley</div>
+          <div class="fee-sub">Monthly Tuition Package • Kathmandu Valley</div>
         </div>
 
         <div class="fee-card-details">
@@ -77,11 +77,11 @@ function renderGroups(){
           </div>
           <div class="detail-item">
             <span class="icon">👨‍🏫</span>
-            <div><strong>Mode:</strong> <span>1-on-1 Home Tuition &amp; Batches</span></div>
+            <div><strong>Format:</strong> <span>1-on-1 Home Tuition &amp; Small Batches</span></div>
           </div>
           ${descText ? `
           <div class="detail-item desc-item">
-            <span class="icon">💡</span>
+            <span class="icon">🎯</span>
             <div><strong>Focus:</strong> <span>${descText}</span></div>
           </div>
           ` : ''}
@@ -92,8 +92,8 @@ function renderGroups(){
             <div class="avatar-stack">${avatarStack(studentsCount)}</div>
             <span><b>${studentsCount}</b> enrolled</span>
           </div>
-          <a href="https://wa.me/9779801775074?text=${encodeURIComponent('Hi Gurukul Tuition, I am interested in inquiring about: ' + (g.name || 'Tuition') + ' (' + (g.fee || '') + ')')}" target="_blank" rel="noopener" class="mini-btn fee-cta-btn">
-            Book Demo Class
+          <a href="https://wa.me/9779801775074?text=${encodeURIComponent('Hi Gurukul Tuition, I would like to book a 2-day free demo class for: ' + (g.name || 'Tuition') + ' (' + (g.level || '') + ')')}" target="_blank" rel="noopener" class="mini-btn fee-cta-btn">
+            Book Free Demo
           </a>
         </div>
       </div>

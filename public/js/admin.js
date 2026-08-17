@@ -311,7 +311,6 @@ function renderAdminVacancies(){
       <div class="info">
         <b>${escapeHtml(v.title)}</b>
         <span>${escapeHtml(v.subject||'')} · Location: ${escapeHtml(v.location||'N/A')} · Pay: ${escapeHtml(v.salary||'N/A')} · Status: ${statusLabel} · ${appsCount} applicant(s)</span>
-        ${v.imageUrl ? `<span style="color:var(--accent);font-size:11.5px;">📸 Poster image attached</span>` : ''}
       </div>
       <div class="row-actions">
         <button class="mini-btn" onclick="editVacancy('${v.id}')">Edit</button>
@@ -343,19 +342,17 @@ function openVacancyEdit(id){
   const statusEl = document.getElementById('vac_status');
   if(statusEl) statusEl.value = v ? (v.status||'open') : 'open';
   
-  // Image Upload reset & state
-  document.getElementById('vac_file').value = '';
-  document.getElementById('vac_imageUrl').value = v ? (v.imageUrl||'') : '';
+  // Reset temporary image scanner (in-memory only, never saved to storage)
+  const vacFileInput = document.getElementById('vac_file');
+  if(vacFileInput) vacFileInput.value = '';
   const preview = document.getElementById('vac_preview');
+  if(preview) preview.style.display = 'none';
   const previewImg = document.getElementById('vac_previewImg');
-  if(v && v.imageUrl){
-    previewImg.src = v.imageUrl;
-    preview.style.display = 'block';
-    document.getElementById('vac_previewFileName').textContent = 'Current flyer image';
-  } else {
-    previewImg.src = '';
-    preview.style.display = 'none';
-  }
+  if(previewImg) previewImg.src = '';
+  const statusBox = document.getElementById('vac_ocrStatus');
+  if(statusBox) statusBox.style.display = 'none';
+  const textBox = document.getElementById('vac_extractedTextBox');
+  if(textBox) textBox.style.display = 'none';
 
   // Quick inputs
   const presetSelect = document.getElementById('vac_presetSelect');
@@ -390,85 +387,277 @@ if(applyPresetBtn){
 }
 
 // Reusable text parser for vacancy fields
-function parseVacancyTextAndFillFields(raw){
-  if(!raw) return;
+function parseVacancyTextData(raw){
+  if(!raw) return {};
   let title = '';
   let subject = '';
   let level = '';
   let type = 'Part-time';
-  let location = 'Kathmandu Valley';
+  let location = '';
   let salary = '';
   let schedule = '';
 
-  // Detect level/grade
-  if(/class\s*(?:9|10)|grade\s*(?:9|10)|see\b/i.test(raw)){
-    level = 'Class 9 & 10 (SEE)';
-  } else if(/\+2|grade\s*(?:11|12)|class\s*(?:11|12)|neb\b/i.test(raw)){
-    level = '+2 / NEB (Grade 11–12)';
-  } else if(/class\s*8|grade\s*8|ble\b/i.test(raw)){
-    level = 'Class 8 (BLE)';
-  } else if(/primary|class\s*[1-5]|grade\s*[1-5]/i.test(raw)){
-    level = 'Primary (Class 1–5)';
-  } else if(/bachelor|bba|bbs|bim/i.test(raw)){
-    level = 'Bachelor Level';
-  } else if(/a-level|a\s*level|cambridge/i.test(raw)){
-    level = 'A-Levels / CBSE';
+  const cleanRaw = raw.replace(/\r\n/g, '\n');
+
+  // 1. Detect Level / Grade / Class
+  // Check explicit label first: e.g. "Class: 10", "Grade: 9 & 10", "Level: SEE", "Class - 7"
+  const classLabelMatch = cleanRaw.match(/(?:class|grade|level|std|standard)\s*[:=-]\s*([^\n\r,;•|]+)/i);
+  if(classLabelMatch && classLabelMatch[1]){
+    const val = classLabelMatch[1].trim();
+    if(/\b10\b|see/i.test(val)) level = 'Class 10 (SEE)';
+    else if(/\b9\b/i.test(val) && /\b10\b/i.test(val)) level = 'Class 9 & 10 (SEE)';
+    else if(/\b8\b|ble/i.test(val)) level = 'Class 8 (BLE)';
+    else if(/\+2|11|12|neb/i.test(val)) level = '+2 / NEB (Grade 11–12)';
+    else if(/\b(?:bba|bbs|bim|bca|bsc|bachelor)\b/i.test(val)) level = 'Bachelor Level';
+    else if(/\b(?:nursery|lkg|ukg|kg|playgroup|montessori)\b/i.test(val)) level = 'Pre-Primary (Nursery/KG)';
+    else if(/\b[1-5]\b/.test(val)) level = val.length < 15 ? `Class ${val.replace(/class|grade/ig,'').trim()}` : 'Primary (Class 1–5)';
+    else if(/\b[6-9]\b/.test(val)) level = val.length < 15 ? `Class ${val.replace(/class|grade/ig,'').trim()}` : 'Lower Secondary';
+    else if(val.length > 1 && val.length < 30) level = val;
   }
 
-  // Detect subjects
-  const foundSubjects = [];
-  if(/opt(?:\.|\s*)math|comp(?:\.|\s*)math|math|mathematics|calculus|algebra/i.test(raw)) foundSubjects.push('Mathematics');
-  if(/physics|science|chem|chemistry|biology/i.test(raw)) foundSubjects.push('Science');
-  if(/account|economics|finance|business/i.test(raw)) foundSubjects.push('Accountancy & Economics');
-  if(/english|spoken/i.test(raw)) foundSubjects.push('English');
-  if(/nepali/i.test(raw)) foundSubjects.push('Nepali');
-  if(/social/i.test(raw)) foundSubjects.push('Social Studies');
-  subject = foundSubjects.join(', ') || 'All Subjects';
-
-  // Detect location
-  const locationsList = ['Baneshwor', 'Kumaripati', 'Pulchowk', 'Jawalakhel', 'Jhamsikhel', 'Kalanki', 'Koteshwor', 'Chabahil', 'Maharajgunj', 'Kirtipur', 'Lalitpur', 'Bhaktapur', 'Sanepa', 'Boudha', 'Sinamangal', 'Putalisadak', 'Kathmandu'];
-  for(const loc of locationsList){
-    if(new RegExp('\\b' + loc + '\\b', 'i').test(raw)){
-      location = `${loc}, Kathmandu Valley`;
-      break;
+  // Fallback regex detection for Level
+  if(!level){
+    if(/(?:class|grade|std)\s*([0-9]{1,2})\s*(?:to|-|&|and)\s*([0-9]{1,2})/i.test(cleanRaw)){
+      const m = cleanRaw.match(/(?:class|grade|std)\s*([0-9]{1,2})\s*(?:to|-|&|and)\s*([0-9]{1,2})/i);
+      level = `Class ${m[1]}–${m[2]}`;
+    } else if(/(?:class|grade|std)\s*10\b|\bsee\b|\bs\.e\.e\.?\b/i.test(cleanRaw)){
+      level = 'Class 10 (SEE)';
+    } else if(/(?:class|grade|std)\s*9\b/i.test(cleanRaw)){
+      level = 'Class 9';
+    } else if(/(?:class|grade|std)\s*8\b|\bble\b|\bb\.l\.e\.?\b/i.test(cleanRaw)){
+      level = 'Class 8 (BLE)';
+    } else if(/(?:class|grade|std)\s*7\b/i.test(cleanRaw)){
+      level = 'Class 7';
+    } else if(/(?:class|grade|std)\s*6\b/i.test(cleanRaw)){
+      level = 'Class 6';
+    } else if(/(?:class|grade|std)\s*5\b/i.test(cleanRaw)){
+      level = 'Class 5';
+    } else if(/(?:class|grade|std)\s*4\b/i.test(cleanRaw)){
+      level = 'Class 4';
+    } else if(/(?:class|grade|std)\s*3\b/i.test(cleanRaw)){
+      level = 'Class 3';
+    } else if(/(?:class|grade|std)\s*2\b/i.test(cleanRaw)){
+      level = 'Class 2';
+    } else if(/(?:class|grade|std)\s*1\b/i.test(cleanRaw)){
+      level = 'Class 1';
+    } else if(/\+2\s*(?:science|mgmt|management|commerce|humanities|arts)?|grade\s*1[12]|class\s*1[12]|\bneb\b/i.test(cleanRaw)){
+      level = '+2 / NEB (Grade 11–12)';
+    } else if(/\bbachelor\b|\bbba\b|\bbbs\b|\bbim\b|\bbca\b|\bbsc\b|\bb\.sc\b|\bb\.tech\b|\bbit\b/i.test(cleanRaw)){
+      level = 'Bachelor Level';
+    } else if(/\ba[\s-]?levels?\b|\bas[\s-]?levels?\b|\ba2[\s-]?levels?\b|\bcambridge\b|\bcbse\b|\bicse\b/i.test(cleanRaw)){
+      level = 'A-Levels / CBSE';
+    } else if(/\bnursery\b|\blkg\b|\bukg\b|\bkindergarten\b|\bmontessori\b|\bplaygroup\b|\bpre[\s-]?primary\b/i.test(cleanRaw)){
+      level = 'Pre-Primary (Nursery/KG)';
+    } else if(/\bprimary\b|class\s*[1-5]|grade\s*[1-5]/i.test(cleanRaw)){
+      level = 'Primary (Class 1–5)';
+    } else if(/middle\s*school|lower\s*secondary|class\s*[6-8]|grade\s*[6-8]/i.test(cleanRaw)){
+      level = 'Class 6–8 (Lower Secondary)';
     }
   }
 
-  // Detect Salary
-  const salMatch = raw.match(/(?:npr|rs\.?|salary|pay|fee)?\s*(\d{1,2}[,\.]?\d{3}|\d+k)(?:\s*(?:to|-)\s*(\d{1,2}[,\.]?\d{3}|\d+k))?(?:\s*\/\s*(?:mo|month))?/i);
-  if(salMatch){
+  // 2. Detect Location (Kathmandu Valley Areas)
+  // Check explicit label first: e.g. "Location: Baneshwor", "Address: Kumaripati", "Loc: Kalanki"
+  const locLabelMatch = cleanRaw.match(/(?:location|address|loc|area|place|zone|locality)\s*[:=-]\s*([^\n\r,;•|]+(?:,\s*[^\n\r,;•|]+)?)/i);
+  if(locLabelMatch && locLabelMatch[1]){
+    let explicitLoc = locLabelMatch[1].trim().replace(/\s+(?:time|timing|salary|pay|phone|contact|subject|class|grade|fee)\b.*$/i, '').trim();
+    if(explicitLoc && explicitLoc.length > 2 && explicitLoc.length < 45 && !/^(?:kathmandu|nepal|valley)$/i.test(explicitLoc)){
+      if(!/kathmandu|lalitpur|bhaktapur/i.test(explicitLoc)){
+        explicitLoc = `${explicitLoc}, Kathmandu Valley`;
+      }
+      location = explicitLoc;
+    }
+  }
+
+  // Check comprehensive Kathmandu Valley area dictionary
+  if(!location){
+    const ktmAreas = [
+      // Specific landmark / sub-areas first
+      { name: 'New Baneshwor, Kathmandu', pattern: /\b(?:new\s+)?baneshwor\b/i },
+      { name: 'Old Baneshwor, Kathmandu', pattern: /\bold\s+baneshwor\b/i },
+      { name: 'Shankhamul, Kathmandu', pattern: /\bshankhamul\b/i },
+      { name: 'Minbhawan, Kathmandu', pattern: /\bminbhawan\b/i },
+      { name: 'Thapagaon, Kathmandu', pattern: /\bthapagaon\b/i },
+      { name: 'Koteshwor, Kathmandu', pattern: /\bkoteshwor\b/i },
+      { name: 'Tinkune, Kathmandu', pattern: /\btinkune\b/i },
+      { name: 'Sinamangal, Kathmandu', pattern: /\bsinamangal\b/i },
+      { name: 'Jadibuti, Kathmandu', pattern: /\bjadibuti\b/i },
+      { name: 'Chabahil, Kathmandu', pattern: /\bchabahil|chabehil\b/i },
+      { name: 'Mitrapark, Kathmandu', pattern: /\bmitrapark\b/i },
+      { name: 'Gaushala, Kathmandu', pattern: /\bgaushala\b/i },
+      { name: 'Battisputali, Kathmandu', pattern: /\bbattisputali\b/i },
+      { name: 'Boudha, Kathmandu', pattern: /\bboudha|bouddha\b/i },
+      { name: 'Jorpati, Kathmandu', pattern: /\bjorpati\b/i },
+      { name: 'Mulpani, Kathmandu', pattern: /\bmulpani\b/i },
+      { name: 'Kapan, Kathmandu', pattern: /\bkapan\b/i },
+      { name: 'Mandikhatar, Kathmandu', pattern: /\bmandikhatar\b/i },
+      { name: 'Golfutar, Kathmandu', pattern: /\bgolfutar\b/i },
+      { name: 'Budhanilkantha, Kathmandu', pattern: /\bbudhanilkantha\b/i },
+      { name: 'Tokha, Kathmandu', pattern: /\btokha\b/i },
+      { name: 'Dhapasi, Kathmandu', pattern: /\bdhapasi\b/i },
+      { name: 'Basundhara, Kathmandu', pattern: /\bbasundhara\b/i },
+      { name: 'Samakhusi, Kathmandu', pattern: /\bsamakhusi|samakhushi\b/i },
+      { name: 'Gongabu, Kathmandu', pattern: /\bgongabu\b/i },
+      { name: 'Baniyatar, Kathmandu', pattern: /\bbaniyatar\b/i },
+      { name: 'Balaju, Kathmandu', pattern: /\bbalaju\b/i },
+      { name: 'Machhapokhari, Kathmandu', pattern: /\bmachhapokhari\b/i },
+      { name: 'Sorakhutte, Kathmandu', pattern: /\bsorakhutte\b/i },
+      { name: 'Thamel, Kathmandu', pattern: /\bthamel\b/i },
+      { name: 'Lazimpat, Kathmandu', pattern: /\blazimpat\b/i },
+      { name: 'Naxal, Kathmandu', pattern: /\bnaxal\b/i },
+      { name: 'Bhatbhateni, Kathmandu', pattern: /\bbhatbhateni\b/i },
+      { name: 'Baluwatar, Kathmandu', pattern: /\bbaluwatar\b/i },
+      { name: 'Maharajgunj, Kathmandu', pattern: /\bmaharajgunj|maharajganj\b/i },
+      { name: 'Dhumbarahi, Kathmandu', pattern: /\bdhumbarahi\b/i },
+      { name: 'Sukedhara, Kathmandu', pattern: /\bsukedhara\b/i },
+      { name: 'Putalisadak, Kathmandu', pattern: /\bputalisadak\b/i },
+      { name: 'Bagbazar, Kathmandu', pattern: /\bbagbazar\b/i },
+      { name: 'Dillibazar, Kathmandu', pattern: /\bdillibazar\b/i },
+      { name: 'Maitighar, Kathmandu', pattern: /\bmaitighar\b/i },
+      { name: 'Anamnagar, Kathmandu', pattern: /\banamnagar\b/i },
+      { name: 'Tripureshwor, Kathmandu', pattern: /\btripureshwor\b/i },
+      { name: 'Teku, Kathmandu', pattern: /\bteku\b/i },
+      { name: 'Kalimati, Kathmandu', pattern: /\bkalimati\b/i },
+      { name: 'Kuleshwor, Kathmandu', pattern: /\bkuleshwor\b/i },
+      { name: 'Balkhu, Kathmandu', pattern: /\bbalkhu\b/i },
+      { name: 'Kalanki, Kathmandu', pattern: /\bkalanki\b/i },
+      { name: 'Sitapaila, Kathmandu', pattern: /\bsitapaila\b/i },
+      { name: 'Syuchatar, Kathmandu', pattern: /\bsyuchatar\b/i },
+      { name: 'Swayambhu, Kathmandu', pattern: /\bswayambhu|swoyambhu\b/i },
+      { name: 'Chhauni, Kathmandu', pattern: /\bchhauni\b/i },
+      { name: 'Tahachal, Kathmandu', pattern: /\btahachal\b/i },
+      { name: 'Kirtipur, Kathmandu', pattern: /\bkirtipur\b/i },
+      { name: 'Panga, Kathmandu', pattern: /\bpanga\b/i },
+      { name: 'Chobhar, Kathmandu', pattern: /\bchobhar\b/i },
+      { name: 'Thankot, Kathmandu', pattern: /\bthankot\b/i },
+      { name: 'Naikap, Kathmandu', pattern: /\bnaikap\b/i },
+      { name: 'Pepacola, Kathmandu', pattern: /\bpepacola|pepsicola\b/i },
+      { name: 'Kadaghari, Kathmandu', pattern: /\bkadaghari\b/i },
+      { name: 'Manohara, Kathmandu', pattern: /\bmanohara\b/i },
+      { name: 'Sankhu, Kathmandu', pattern: /\bsankhu\b/i },
+      // Lalitpur
+      { name: 'Kumaripati, Lalitpur', pattern: /\bkumaripati\b/i },
+      { name: 'Jawalakhel, Lalitpur', pattern: /\bjawalakhel\b/i },
+      { name: 'Lagankhel, Lalitpur', pattern: /\blagankhel\b/i },
+      { name: 'Pulchowk, Lalitpur', pattern: /\bpulchowk|pulchok\b/i },
+      { name: 'Jhamsikhel, Lalitpur', pattern: /\bjhamsikhel\b/i },
+      { name: 'Sanepa, Lalitpur', pattern: /\bsanepa\b/i },
+      { name: 'Kupondole, Lalitpur', pattern: /\bkupondole|kupondol\b/i },
+      { name: 'Patan, Lalitpur', pattern: /\bpatan|mangalbazar\b/i },
+      { name: 'Bhaisepati, Lalitpur', pattern: /\bbhaisepati|bhaisepatti\b/i },
+      { name: 'Nakkhu, Lalitpur', pattern: /\bnakkhu|nakhu\b/i },
+      { name: 'Ekantakuna, Lalitpur', pattern: /\bekantakuna\b/i },
+      { name: 'Balkumari, Lalitpur', pattern: /\bbalkumari\b/i },
+      { name: 'Gwarko, Lalitpur', pattern: /\bgwarko\b/i },
+      { name: 'Satdobato, Lalitpur', pattern: /\bsatdobato\b/i },
+      { name: 'Dhapakhel, Lalitpur', pattern: /\bdhapakhel\b/i },
+      { name: 'Harisiddhi, Lalitpur', pattern: /\bharisiddhi\b/i },
+      { name: 'Sunakothi, Lalitpur', pattern: /\bsunakothi\b/i },
+      { name: 'Thecho, Lalitpur', pattern: /\bthecho\b/i },
+      { name: 'Tikathali, Lalitpur', pattern: /\btikathali\b/i },
+      { name: 'Imadol, Lalitpur', pattern: /\bimadol\b/i },
+      { name: 'Lubhu, Lalitpur', pattern: /\blubhu\b/i },
+      { name: 'Godawari, Lalitpur', pattern: /\bgodawari\b/i },
+      { name: 'Sanagaon, Lalitpur', pattern: /\bsanagaon\b/i },
+      { name: 'Kusunti, Lalitpur', pattern: /\bkusunti\b/i },
+      { name: 'Mahalaxmisthan, Lalitpur', pattern: /\bmahalaxmisthan\b/i },
+      { name: 'Talchikhel, Lalitpur', pattern: /\btalchikhel\b/i },
+      { name: 'Nakhipot, Lalitpur', pattern: /\bnakhipot\b/i },
+      { name: 'Sainbu, Lalitpur', pattern: /\bsainbu\b/i },
+      // Bhaktapur
+      { name: 'Thimi, Bhaktapur', pattern: /\b(?:sano\s+)?thimi\b/i },
+      { name: 'Radhe Radhe, Bhaktapur', pattern: /\bradhe\s+radhe\b/i },
+      { name: 'Sallaghari, Bhaktapur', pattern: /\bsallaghari\b/i },
+      { name: 'Suryabinayak, Bhaktapur', pattern: /\bsuryabinayak\b/i },
+      { name: 'Kamalbinayak, Bhaktapur', pattern: /\bkamalbinayak\b/i },
+      { name: 'Gatthaghar, Bhaktapur', pattern: /\bgatthaghar|gattaghar\b/i },
+      { name: 'Lokanthali, Bhaktapur', pattern: /\blokanthali\b/i },
+      { name: 'Kaushaltar, Bhaktapur', pattern: /\bkaushaltar\b/i },
+      { name: 'Balkot, Bhaktapur', pattern: /\bbalkot\b/i },
+      { name: 'Dadhikot, Bhaktapur', pattern: /\bdadhikot\b/i },
+      { name: 'Sirutar, Bhaktapur', pattern: /\bsirutar\b/i },
+      { name: 'Duwakot, Bhaktapur', pattern: /\bduwakot\b/i },
+      { name: 'Jagati, Bhaktapur', pattern: /\bjagati\b/i },
+      { name: 'Bhaktapur', pattern: /\bbhaktapur\b/i },
+      { name: 'Lalitpur', pattern: /\blalitpur\b/i },
+      { name: 'Kathmandu', pattern: /\bkathmandu\b/i }
+    ];
+
+    for(const item of ktmAreas){
+      if(item.pattern.test(cleanRaw)){
+        location = item.name;
+        break;
+      }
+    }
+  }
+
+  if(!location) location = 'Kathmandu Valley';
+
+  // 3. Detect subjects
+  const foundSubjects = [];
+  if(/opt(?:\.|\s*)math|comp(?:\.|\s*)math|optional\s*math|compulsory\s*math|calculus|algebra/i.test(cleanRaw)){
+    if(/opt/i.test(cleanRaw) && /comp/i.test(cleanRaw)) foundSubjects.push('Comp. & Opt. Mathematics');
+    else if(/opt/i.test(cleanRaw)) foundSubjects.push('Optional Mathematics');
+    else foundSubjects.push('Mathematics');
+  } else if(/\bmath\b|\bmathematics\b/i.test(cleanRaw)){
+    foundSubjects.push('Mathematics');
+  }
+
+  if(/\bphysics\b/i.test(cleanRaw)) foundSubjects.push('Physics');
+  if(/\bchemistry\b|\bchem\b/i.test(cleanRaw)) foundSubjects.push('Chemistry');
+  if(/\bbiology\b|\bbio\b/i.test(cleanRaw)) foundSubjects.push('Biology');
+  if(/\bscience\b/i.test(cleanRaw) && !foundSubjects.includes('Physics') && !foundSubjects.includes('Chemistry')) foundSubjects.push('Science');
+  if(/\baccount\b|\baccountancy\b|\bfinance\b/i.test(cleanRaw)) foundSubjects.push('Accountancy');
+  if(/\beconomics\b|\becon\b/i.test(cleanRaw)) foundSubjects.push('Economics');
+  if(/\benglish\b|\bgrammar\b/i.test(cleanRaw)) foundSubjects.push('English');
+  if(/\bnepali\b/i.test(cleanRaw)) foundSubjects.push('Nepali');
+  if(/\bsocial\b|\bsocial\s*studies\b/i.test(cleanRaw)) foundSubjects.push('Social Studies');
+  if(/\bcomputer\b|\bcoding\b|\bprogramming\b/i.test(cleanRaw)) foundSubjects.push('Computer Science');
+
+  subject = foundSubjects.join(', ') || 'All Subjects';
+
+  // 4. Detect Salary / Fee
+  const salMatch = cleanRaw.match(/(?:npr|rs\.?|salary|pay|fee)?\s*(\d{1,2}[,\.]?\d{3}|\d+k)(?:\s*(?:to|-)\s*(\d{1,2}[,\.]?\d{3}|\d+k))?(?:\s*\/\s*(?:mo|month))?/i);
+  if(salMatch && salMatch[1]){
     salary = `NPR ${salMatch[1]}${salMatch[2] ? ' – ' + salMatch[2] : ''} / month`;
   }
 
-  // Detect timing/schedule
-  const timeMatch = raw.match(/(\d{1,2}(?::\d{2})?\s*(?:am|pm)?\s*(?:to|-)\s*\d{1,2}(?::\d{2})?\s*(?:am|pm))/i);
+  // 5. Detect timing/schedule
+  const timeMatch = cleanRaw.match(/(\d{1,2}(?::\d{2})?\s*(?:am|pm)?\s*(?:to|-)\s*\d{1,2}(?::\d{2})?\s*(?:am|pm))/i);
   if(timeMatch){
     schedule = timeMatch[1];
-  } else if(/morning/i.test(raw)){
+  } else if(/morning/i.test(cleanRaw)){
     schedule = 'Morning Batch (6:30 AM – 8:00 AM)';
-  } else if(/evening/i.test(raw)){
+  } else if(/evening/i.test(cleanRaw)){
     schedule = 'Evening Batch (5:00 PM – 6:30 PM)';
   }
 
-  // Detect Type
-  if(/full\s*time/i.test(raw)) type = 'Full-time';
-  else if(/weekend/i.test(raw)) type = 'Weekend only';
-  else if(/online/i.test(raw)) type = 'Online';
-  else if(/morning/i.test(raw)) type = 'Morning Batch';
-  else if(/evening/i.test(raw)) type = 'Evening Batch';
+  // 6. Detect Type
+  if(/full\s*time/i.test(cleanRaw)) type = 'Full-time';
+  else if(/weekend/i.test(cleanRaw)) type = 'Weekend only';
+  else if(/online/i.test(cleanRaw)) type = 'Online';
+  else if(/morning/i.test(cleanRaw)) type = 'Morning Batch';
+  else if(/evening/i.test(cleanRaw)) type = 'Evening Batch';
 
-  // Form title
-  title = `${subject} Home Tutor (${level || 'Kathmandu Valley'})`;
+  // 7. Form title
+  const locShort = location.split(',')[0].trim();
+  title = `${level || 'Home'} ${subject} Tutor – ${locShort}`;
 
-  // Fill the inputs
-  document.getElementById('vac_title').value = title;
-  document.getElementById('vac_subject').value = subject;
-  document.getElementById('vac_level').value = level || 'School / College';
-  document.getElementById('vac_type').value = type;
-  document.getElementById('vac_location').value = location;
-  if(salary) document.getElementById('vac_salary').value = salary;
-  if(schedule) document.getElementById('vac_schedule').value = schedule;
-  document.getElementById('vac_desc').value = raw;
+  return { title, subject, level: level || 'Class 1–10', type, location, salary, schedule, raw };
+}
+
+function parseVacancyTextAndFillFields(raw){
+  if(!raw) return;
+  const p = parseVacancyTextData(raw);
+
+  if(p.title) document.getElementById('vac_title').value = p.title;
+  if(p.subject) document.getElementById('vac_subject').value = p.subject;
+  if(p.level) document.getElementById('vac_level').value = p.level;
+  if(p.type) document.getElementById('vac_type').value = p.type;
+  if(p.location) document.getElementById('vac_location').value = p.location;
+  if(p.salary) document.getElementById('vac_salary').value = p.salary;
+  if(p.schedule) document.getElementById('vac_schedule').value = p.schedule;
+  const descEl = document.getElementById('vac_desc');
+  if(descEl) descEl.value = raw;
 }
 
 // Smart text parser button
@@ -486,7 +675,39 @@ if(quickParseBtn){
 }
 
 /* ==================== EXTRACT TEXT FROM IMAGE (OCR) ==================== */
-function quickScaleImageForOCR(fileOrUrl, maxDimension = 1000, quality = 0.82){
+function updateOcrProgress(percent, msg, isSuccess = false, isError = false){
+  const statusBox = document.getElementById('vac_ocrStatus');
+  const statusText = document.getElementById('vac_ocrStatusText');
+  const statusPercent = document.getElementById('vac_ocrPercent');
+  const progressBar = document.getElementById('vac_ocrProgressBar');
+
+  if(statusBox) statusBox.style.display = 'block';
+  if(statusText && msg) statusText.textContent = msg;
+  const p = Math.max(0, Math.min(100, Math.round(percent)));
+  if(statusPercent) statusPercent.textContent = `${p}%`;
+  if(progressBar) progressBar.style.width = `${p}%`;
+
+  if(statusBox){
+    if(isSuccess){
+      statusBox.style.background = 'rgba(76, 175, 80, 0.15)';
+      statusBox.style.borderColor = 'rgba(76, 175, 80, 0.4)';
+      if(progressBar) progressBar.style.background = '#4CAF50';
+      if(statusPercent) statusPercent.style.color = '#4CAF50';
+    } else if(isError){
+      statusBox.style.background = 'rgba(244, 67, 54, 0.15)';
+      statusBox.style.borderColor = 'rgba(244, 67, 54, 0.4)';
+      if(progressBar) progressBar.style.background = '#F44336';
+      if(statusPercent) statusPercent.style.color = '#F44336';
+    } else {
+      statusBox.style.background = 'rgba(244, 201, 93, 0.12)';
+      statusBox.style.borderColor = 'rgba(244, 201, 93, 0.35)';
+      if(progressBar) progressBar.style.background = 'var(--accent)';
+      if(statusPercent) statusPercent.style.color = 'var(--accent)';
+    }
+  }
+}
+
+function quickScaleImageForOCR(fileOrUrl, maxDimension = 1200, quality = 0.82){
   return new Promise((resolve) => {
     const img = new Image();
     img.crossOrigin = 'Anonymous';
@@ -506,6 +727,8 @@ function quickScaleImageForOCR(fileOrUrl, maxDimension = 1000, quality = 0.82){
       canvas.width = w;
       canvas.height = h;
       const ctx = canvas.getContext('2d');
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'medium';
       ctx.drawImage(img, 0, 0, w, h);
       resolve(canvas.toDataURL('image/jpeg', quality));
     };
@@ -527,45 +750,57 @@ function quickScaleImageForOCR(fileOrUrl, maxDimension = 1000, quality = 0.82){
 }
 
 async function extractTextFromVacancyImage(){
-  const imageUrlInput = document.getElementById('vac_imageUrl');
-  const statusBox = document.getElementById('vac_ocrStatus');
-  const statusText = document.getElementById('vac_ocrStatusText');
   const textBox = document.getElementById('vac_extractedTextBox');
   const textArea = document.getElementById('vac_extractedText');
   const extractBtn = document.getElementById('vac_extractFromImgBtn');
 
-  let rawSource = null;
-  if(vac_pendingFile){
-    rawSource = vac_pendingFile;
-  } else if(imageUrlInput && imageUrlInput.value.trim()){
-    rawSource = imageUrlInput.value.trim();
+  let rawSource = vac_pendingFile;
+  const vacFileInput = document.getElementById('vac_file');
+  if(!rawSource && vacFileInput && vacFileInput.files && vacFileInput.files[0]){
+    rawSource = vacFileInput.files[0];
   }
 
   if(!rawSource){
-    showToast('Please select an image file or enter an image URL first.');
+    showToast('Please select a flyer image file first.');
     return;
   }
 
-  if(statusBox){
-    statusBox.style.display = 'block';
-    statusBox.style.background = 'rgba(255,193,7,0.12)';
-    statusBox.style.borderColor = 'rgba(255,193,7,0.35)';
-    statusText.textContent = '⚡ Extracting text & details instantly...';
-  }
   if(extractBtn){
     extractBtn.disabled = true;
     extractBtn.textContent = '⚡ Extracting...';
   }
 
+  updateOcrProgress(15, '⚡ Preparing & scaling flyer image (15%)...');
+
+  let progressInterval = null;
+  let currentPct = 15;
+
   try{
-    // Ultra-fast canvas compression before network call
-    const imageSource = await quickScaleImageForOCR(rawSource, 1000, 0.82);
+    // Fast-scale image (1200px max, ~100KB payload) for sub-second network transfer
+    const imageSource = await quickScaleImageForOCR(rawSource, 1200, 0.82);
+    updateOcrProgress(30, '⚡ Uploading scan to AI OCR engine (30%)...');
+
+    // Simulate steady progress during network call up to 88%
+    progressInterval = setInterval(() => {
+      if(currentPct < 88){
+        currentPct += Math.floor(Math.random() * 8) + 4;
+        if(currentPct > 88) currentPct = 88;
+        if(currentPct < 55){
+          updateOcrProgress(currentPct, `⚡ AI reading text & flyer structure (${currentPct}%)...`);
+        } else {
+          updateOcrProgress(currentPct, `⚡ Parsing Title, Class, Location & Pay (${currentPct}%)...`);
+        }
+      }
+    }, 120);
 
     const res = await fetch('/api/extract-text', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ image: imageSource, mimeType: 'image/jpeg' })
     });
+
+    if(progressInterval) clearInterval(progressInterval);
+    updateOcrProgress(92, '⚡ Processing extracted fields (92%)...');
 
     const result = await res.json();
 
@@ -574,53 +809,78 @@ async function extractTextFromVacancyImage(){
       
       if(textArea) textArea.value = raw;
       if(textBox) textBox.style.display = 'block';
-      if(statusBox){
-        statusBox.style.background = 'rgba(76, 175, 80, 0.15)';
-        statusBox.style.borderColor = 'rgba(76, 175, 80, 0.4)';
-        statusText.textContent = '✅ Extracted & autofilled!';
-      }
 
       if(result.parsed){
         const p = result.parsed;
-        if(p.title) document.getElementById('vac_title').value = p.title;
-        if(p.subject) document.getElementById('vac_subject').value = p.subject;
-        if(p.level) document.getElementById('vac_level').value = p.level;
-        if(p.type) document.getElementById('vac_type').value = p.type;
-        if(p.location) document.getElementById('vac_location').value = p.location;
-        if(p.salary) document.getElementById('vac_salary').value = p.salary;
-        if(p.schedule) document.getElementById('vac_schedule').value = p.schedule;
+        // Priority 1: Use exact extracted values from the AI engine
+        let exactTitle = p.title ? p.title.trim() : '';
+        let exactSubject = p.subject ? p.subject.trim() : '';
+        let exactLevel = p.level ? p.level.trim() : '';
+        let exactLocation = p.location ? p.location.trim() : '';
+        let exactSalary = p.salary ? p.salary.trim() : '';
+        let exactSchedule = p.schedule ? p.schedule.trim() : '';
+        let exactType = p.type ? p.type.trim() : 'Part-time';
+
+        // Priority 2: Fallback to heuristic parser only for fields that are missing
+        const fallback = parseVacancyTextData(raw);
+        if(!exactLevel && fallback.level) exactLevel = fallback.level;
+        if(!exactLocation && fallback.location) exactLocation = fallback.location;
+        if(!exactSubject && fallback.subject) exactSubject = fallback.subject;
+        if(!exactSalary && fallback.salary) exactSalary = fallback.salary;
+        if(!exactSchedule && fallback.schedule) exactSchedule = fallback.schedule;
+        if(!exactType && fallback.type) exactType = fallback.type;
+
+        if(!exactTitle || exactTitle === 'Home Tutor' || exactTitle.includes('undefined')){
+          const locPart = (exactLocation || 'Kathmandu').split(',')[0].trim();
+          exactTitle = `${exactLevel || 'Home'} ${exactSubject || 'Tuition'} Tutor – ${locPart}`;
+        }
+
+        // Fill all form inputs exactly
+        if(exactTitle) document.getElementById('vac_title').value = exactTitle;
+        if(exactSubject) document.getElementById('vac_subject').value = exactSubject;
+        if(exactLevel) document.getElementById('vac_level').value = exactLevel;
+        if(exactType) document.getElementById('vac_type').value = exactType;
+        if(exactLocation) document.getElementById('vac_location').value = exactLocation;
+        if(exactSalary) document.getElementById('vac_salary').value = exactSalary;
+        if(exactSchedule) document.getElementById('vac_schedule').value = exactSchedule;
+        
         const descEl = document.getElementById('vac_desc');
         if(descEl){
-          if(p.description) descEl.value = p.description;
-          else if(raw) descEl.value = raw;
+          descEl.value = p.description || raw;
         }
       } else if(raw){
         parseVacancyTextAndFillFields(raw);
       }
 
-      showToast('✨ Form fields autofilled from image!');
+      // Automatically discard in-memory image scan to keep storage clean
+      vac_pendingFile = null;
+      const vacFileInput = document.getElementById('vac_file');
+      if(vacFileInput) vacFileInput.value = '';
+
+      updateOcrProgress(100, '✅ 100% Extracted & Form Filled!', true);
+      showToast('✨ Form fields filled (100% Complete)!');
     } else {
       // Fallback to client-side OCR
       await runClientSideOCR(imageSource);
     }
   }catch(err){
+    if(progressInterval) clearInterval(progressInterval);
     console.warn('Server OCR failed, attempting client OCR fallback:', err);
     await runClientSideOCR(rawSource);
   }finally{
+    if(progressInterval) clearInterval(progressInterval);
     if(extractBtn){
       extractBtn.disabled = false;
-      extractBtn.textContent = '✨ Extract Text from Image';
+      extractBtn.textContent = '✨ Re-Scan Image';
     }
   }
 }
 
 async function runClientSideOCR(imgSrc){
-  const statusBox = document.getElementById('vac_ocrStatus');
-  const statusText = document.getElementById('vac_ocrStatusText');
   const textBox = document.getElementById('vac_extractedTextBox');
   const textArea = document.getElementById('vac_extractedText');
 
-  if(statusText) statusText.textContent = '🔍 Running client-side image OCR engine...';
+  updateOcrProgress(20, '🔍 Loading client-side OCR engine (20%)...');
 
   try{
     if(!window.Tesseract){
@@ -633,11 +893,14 @@ async function runClientSideOCR(imgSrc){
       });
     }
 
+    updateOcrProgress(35, '🔍 Pre-processing image (35%)...');
     const scaled = await quickScaleImageForOCR(imgSrc, 1000, 0.85);
+
     const { data: { text } } = await window.Tesseract.recognize(scaled, 'eng', {
       logger: m => {
-        if(m.status === 'recognizing text' && statusText){
-          statusText.textContent = `🔍 Recognizing text: ${Math.round((m.progress||0) * 100)}%`;
+        if(m.status === 'recognizing text'){
+          const pct = Math.min(95, Math.round(35 + (m.progress || 0) * 60));
+          updateOcrProgress(pct, `🔍 Recognizing text (${pct}%)...`);
         }
       }
     });
@@ -645,20 +908,16 @@ async function runClientSideOCR(imgSrc){
     const cleaned = (text || '').trim();
     if(textArea) textArea.value = cleaned;
     if(textBox) textBox.style.display = 'block';
-    if(statusBox){
-      statusBox.style.background = 'rgba(76, 175, 80, 0.15)';
-      statusBox.style.borderColor = 'rgba(76, 175, 80, 0.4)';
-      statusText.textContent = '✅ Text extracted from image!';
-    }
 
     parseVacancyTextAndFillFields(cleaned);
-    showToast('✨ Text extracted from image!');
+    vac_pendingFile = null;
+    const vacFileInput = document.getElementById('vac_file');
+    if(vacFileInput) vacFileInput.value = '';
+
+    updateOcrProgress(100, '✅ 100% Extracted & Form Filled!', true);
+    showToast('✨ Text extracted (100% Complete)!');
   }catch(e){
-    if(statusBox){
-      statusBox.style.background = 'rgba(244, 67, 54, 0.15)';
-      statusBox.style.borderColor = 'rgba(244, 67, 54, 0.4)';
-      statusText.textContent = '⚠️ Could not read image text. Please enter details manually.';
-    }
+    updateOcrProgress(0, '⚠️ Could not read image text. Please enter details manually.', false, true);
     showToast('Could not process image OCR');
   }
 }
@@ -681,7 +940,7 @@ if(copyExtractedBtn){
   });
 }
 
-// Image upload file input listener (Auto-extracts instantly)
+// Image upload file input listener (Auto-extracts instantly and discards image)
 const vacFileInput = document.getElementById('vac_file');
 if(vacFileInput){
   vacFileInput.addEventListener('change', (e) => {
@@ -693,9 +952,8 @@ if(vacFileInput){
       return;
     }
     vac_pendingFile = file;
-    document.getElementById('vac_imageUrl').value = '';
     document.getElementById('vac_previewImg').src = URL.createObjectURL(file);
-    document.getElementById('vac_previewFileName').textContent = `Selected: ${file.name}`;
+    document.getElementById('vac_previewFileName').textContent = `Scanning: ${file.name} (temporary)`;
     document.getElementById('vac_preview').style.display = 'block';
     
     // Auto-trigger ultra-fast extraction immediately
@@ -703,35 +961,20 @@ if(vacFileInput){
   });
 }
 
-// Image URL input listener
-const vacImageUrlInput = document.getElementById('vac_imageUrl');
-if(vacImageUrlInput){
-  vacImageUrlInput.addEventListener('change', (e) => {
-    const val = e.target.value.trim();
-    const preview = document.getElementById('vac_preview');
-    const previewImg = document.getElementById('vac_previewImg');
-    if(val){
-      vac_pendingFile = null;
-      previewImg.src = val;
-      document.getElementById('vac_previewFileName').textContent = 'Image URL linked';
-      preview.style.display = 'block';
-      extractTextFromVacancyImage();
-    } else if(!vac_pendingFile){
-      preview.style.display = 'none';
-    }
-  });
-}
-
-// Remove image button listener
+// Remove image scan button listener
 const vacRemoveImgBtn = document.getElementById('vac_removeImgBtn');
 if(vacRemoveImgBtn){
   vacRemoveImgBtn.addEventListener('click', () => {
     vac_pendingFile = null;
-    document.getElementById('vac_file').value = '';
-    document.getElementById('vac_imageUrl').value = '';
-    document.getElementById('vac_previewImg').src = '';
-    document.getElementById('vac_preview').style.display = 'none';
-    showToast('Image removed');
+    const fi = document.getElementById('vac_file');
+    if(fi) fi.value = '';
+    const pi = document.getElementById('vac_previewImg');
+    if(pi) pi.src = '';
+    const pr = document.getElementById('vac_preview');
+    if(pr) pr.style.display = 'none';
+    const sb = document.getElementById('vac_ocrStatus');
+    if(sb) sb.style.display = 'none';
+    showToast('Flyer scan cleared');
   });
 }
 
@@ -754,17 +997,12 @@ document.getElementById('vac_saveBtn').addEventListener('click', async () => {
   const originalLabel = btn.textContent;
   const id = document.getElementById('vac_id').value;
 
-  let imageUrl = document.getElementById('vac_imageUrl').value.trim();
-  if(vac_pendingFile){
-    btn.disabled = true; btn.textContent = 'Uploading image…';
-    try {
-      imageUrl = await uploadToCloudinaryOrStorage(vac_pendingFile, 'gurukul_vacancies', `vac_${Date.now()}`);
-    } catch(err) {
-      imageUrl = await new Promise(resolve => compressImageFile(vac_pendingFile, resolve));
-    }
+  const existingVac = id ? data.vacancies.find(v=>v.id===id) : null;
+  // If an existing vacancy had an old legacy image, clean it up from storage
+  if(existingVac && existingVac.imageUrl && (existingVac.imageUrl.includes('cloudinary.com') || existingVac.imageUrl.includes('blob.vercel-storage.com'))){
+    deleteBlob(existingVac.imageUrl);
   }
 
-  const existingVac = id ? data.vacancies.find(v=>v.id===id) : null;
   const descEl = document.getElementById('vac_desc');
   const statusEl = document.getElementById('vac_status');
 
@@ -779,7 +1017,7 @@ document.getElementById('vac_saveBtn').addEventListener('click', async () => {
     schedule: document.getElementById('vac_schedule').value.trim(),
     description: descEl ? descEl.value.trim() : (existingVac ? (existingVac.description || '') : ''),
     status: statusEl ? statusEl.value : (existingVac ? (existingVac.status || 'open') : 'open'),
-    imageUrl: imageUrl || ''
+    imageUrl: '' // Clean storage: no flyer images stored
   };
 
   btn.textContent = 'Saving…';
