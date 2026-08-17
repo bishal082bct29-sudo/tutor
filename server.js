@@ -6,6 +6,7 @@ import { fileURLToPath } from 'url';
 import dataHandler from './api/data.js';
 import uploadHandler from './api/upload.js';
 import deleteBlobHandler from './api/delete-blob.js';
+import extractTextHandler from './api/extract-text.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -30,6 +31,12 @@ const adaptHandler = (handler) => async (req, res, next) => {
 app.all('/api/data', adaptHandler(dataHandler));
 app.all('/api/upload', adaptHandler(uploadHandler));
 app.all('/api/delete-blob', adaptHandler(deleteBlobHandler));
+app.all('/api/extract-text', adaptHandler(extractTextHandler));
+
+// Catch-all for any unmatched /api route (Express 5 compatible)
+app.use('/api', (req, res) => {
+  res.status(404).json({ error: 'API route not found' });
+});
 
 // Serve static files from /public directory
 app.use(express.static(path.join(__dirname, 'public')));

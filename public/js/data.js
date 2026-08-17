@@ -52,8 +52,45 @@ function defaultData(){
       {id:'g6', name:'Bachelor Level (BBA / BBS / Engineering)', subject:'Corporate Finance, Financial Mgmt, Calculus, Coding', level:'Bachelor Level (University)', students:12, schedule:'Custom Evening & Weekend Batches', fee:'NPR 4,500 / subject (or NPR 14,000 / mo)', description:'University lecturer-guided coaching for semester exams, complex numericals, and project report guidance.'}
     ],
     vacancies:[
-      {id:'v1', title:'Math Tutor (Grade 9–10)', subject:'Mathematics', type:'Part-time', location:'Kathmandu', salary:'NPR 15,000/mo', description:'Looking for a patient, experienced tutor for evening batches, 3 days/week.', status:'open'},
-      {id:'v2', title:'Science Tutor (Grade 6–8)', subject:'Science', type:'Weekend only', location:'Kathmandu', salary:'NPR 8,000/mo', description:'Saturday morning batch, small group of 6 students.', status:'open'}
+      {
+        id:'v1',
+        title:'SEE Mathematics & Optional Math Home Tutor (Grade 9–10)',
+        subject:'Comp. Mathematics, Opt. Mathematics',
+        level:'Class 9 & 10 (SEE Board Preparation)',
+        type:'Part-time',
+        location:'Baneshwor / Tinkune, Kathmandu',
+        salary:'NPR 14,000 / month',
+        schedule:'5:00 PM – 6:30 PM (6 days/week)',
+        description:'Seeking an energetic and patient home tutor for a Grade 10 SEE candidate. Focus on Trigonometry, Vector Geometry, and Algebra problem sets. 2-day free demo class required.',
+        status:'open',
+        imageUrl:''
+      },
+      {
+        id:'v2',
+        title:'+2 Science Physics & Chemistry Home Tutor (Grade 11–12)',
+        subject:'Physics, Chemistry, Basic Mathematics',
+        level:'+2 Science / NEB Examination',
+        type:'Part-time',
+        location:'Kumaripati / Pulchowk, Lalitpur',
+        salary:'NPR 16,500 / month',
+        schedule:'6:30 AM – 8:00 AM (Morning Batch)',
+        description:'1-on-1 private home tuition for Class 12 NEB preparation. Requires strong conceptual clarity in Physics numerical derivations and Organic Chemistry reactions.',
+        status:'open',
+        imageUrl:''
+      },
+      {
+        id:'v3',
+        title:'Primary School All-Subjects Home Tutor (Class 2–4)',
+        subject:'English, Nepali, Science, Math',
+        level:'Primary (Class 2 to 4)',
+        type:'Part-time',
+        location:'Kalanki / Kirtipur, Kathmandu',
+        salary:'NPR 11,000 / month',
+        schedule:'4:30 PM – 6:00 PM (Mon–Fri)',
+        description:'Friendly home tutor needed for daily homework assistance, cursive handwriting, and English phonetics with interactive learning methods.',
+        status:'open',
+        imageUrl:''
+      }
     ],
     applications:[],
     children:[],
@@ -105,9 +142,19 @@ function mergeWithDefaults(parsed){
 async function loadData(){
   try{
     const resp = await fetch('/api/data');
-    if(!resp.ok) throw new Error('Server returned ' + resp.status);
+    if(!resp.ok) {
+      console.warn('API /api/data returned status ' + resp.status + '; using cached/default data.');
+      if(!data) data = getInitialCachedData();
+      return;
+    }
+    const contentType = resp.headers.get('content-type') || '';
+    if (!contentType.includes('application/json')) {
+      console.warn('API /api/data returned non-JSON content; using cached/default data.');
+      if(!data) data = getInitialCachedData();
+      return;
+    }
     const json = await resp.json();
-    if(json.data){
+    if(json && json.data){
       data = mergeWithDefaults(json.data);
       lastKnownUpdatedAt = json.updatedAt;
       try{ localStorage.setItem('gurukul_cached_data', JSON.stringify(data)); }catch(e){}
@@ -117,8 +164,8 @@ async function loadData(){
       await saveData();
     }
   }catch(e){
-    console.error('Could not load data. Check DATABASE_URL and that the API routes are deployed.', e);
-    if(!data) data = defaultData();
+    console.warn('Notice: Using cached/default data state.', e && e.message ? e.message : e);
+    if(!data) data = getInitialCachedData();
   }
 }
 
@@ -136,8 +183,13 @@ async function saveData(){
           body: JSON.stringify(data)
         });
         if(resp.ok){
-          const json = await resp.json();
-          lastKnownUpdatedAt = json.updatedAt;
+          const contentType = resp.headers.get('content-type') || '';
+          if(contentType.includes('application/json')){
+            const json = await resp.json();
+            if(json && json.updatedAt){
+              lastKnownUpdatedAt = json.updatedAt;
+            }
+          }
         }
       }catch(e){
         console.warn('Background save note:', e);
@@ -180,8 +232,10 @@ async function pollForChanges(){
   try{
     const resp = await fetch('/api/data');
     if(!resp.ok) return;
+    const contentType = resp.headers.get('content-type') || '';
+    if(!contentType.includes('application/json')) return;
     const json = await resp.json();
-    if(!json.data) return;
+    if(!json || !json.data) return;
     if(json.updatedAt && json.updatedAt === lastKnownUpdatedAt) return; // nothing changed
     lastKnownUpdatedAt = json.updatedAt;
     data = mergeWithDefaults(json.data);
@@ -191,7 +245,7 @@ async function pollForChanges(){
     }
   }catch(e){
     // Silent — a missed poll isn't worth alarming the visitor about.
-    console.warn('Poll for changes failed:', e);
+    console.warn('Poll for changes note:', e && e.message ? e.message : e);
   }
 }
 setInterval(pollForChanges, POLL_INTERVAL_MS);

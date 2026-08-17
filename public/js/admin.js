@@ -214,8 +214,94 @@ document.getElementById('grp_saveBtn').addEventListener('click', () => {
 
 /* ---------- VACANCIES (admin) ---------- */
 const vacEditOverlay = document.getElementById('vacEditOverlay');
+let vac_pendingFile = null;
+
+const VACANCY_PRESETS = {
+  see_math: {
+    title: 'SEE Comp. & Opt. Mathematics Tutor (Grade 9–10)',
+    subject: 'Comp. Mathematics, Opt. Mathematics',
+    level: 'Class 9 & 10 (SEE Board Preparation)',
+    type: 'Part-time',
+    location: 'Baneshwor, Kathmandu',
+    salary: 'NPR 12,000 – 15,000 / mo',
+    schedule: '5:00 PM – 6:30 PM (6 Days/Wk)',
+    desc: 'Experienced SEE mathematics home tutor needed for intensive revision, past paper practice, and formula clarity. 2-day free demo classes required before starting regular sessions.'
+  },
+  plus2_science: {
+    title: '+2 Science (Physics & Chemistry) Home Tutor (Grade 11–12)',
+    subject: 'Physics, Chemistry, Basic Math',
+    level: '+2 Science / NEB Board',
+    type: 'Part-time',
+    location: 'Kumaripati / Pulchowk, Lalitpur',
+    salary: 'NPR 15,000 – 18,000 / mo',
+    schedule: '6:30 AM – 8:00 AM or 5:30 PM – 7:00 PM',
+    desc: 'NEB board examination specialist needed for Physics numericals and Chemistry reaction mechanisms. 1-on-1 home tuition with regular mock tests and past paper drilling.'
+  },
+  plus2_mgmt: {
+    title: '+2 Management (Accountancy & Economics) Tutor (Grade 11–12)',
+    subject: 'Principles of Accounting, Economics, Business Math',
+    level: '+2 Management / NEB',
+    type: 'Evening Batch',
+    location: 'Kalanki / Kirtipur, Kathmandu',
+    salary: 'NPR 12,000 – 15,000 / mo',
+    schedule: '5:00 PM – 6:30 PM (Mon–Fri)',
+    desc: 'Concept-focused home tutor for financial accounting, journal entries, ledger posting, and microeconomics for Class 11 and 12 students.'
+  },
+  primary_all: {
+    title: 'Primary All-Subjects Home Tutor (Class 1–5)',
+    subject: 'English, Nepali, Math, Science, Social Studies',
+    level: 'Class 1 to 5 (Primary Level)',
+    type: 'Part-time',
+    location: 'Old Baneshwor / Sinamangal, Kathmandu',
+    salary: 'NPR 10,000 – 12,000 / mo',
+    schedule: '4:30 PM – 6:00 PM (Mon–Fri)',
+    desc: 'Patient and caring female/male tutor for daily school homework guidance, handwriting improvement, and foundational reading and arithmetic.'
+  },
+  ble_grade8: {
+    title: 'Class 8 BLE Board Preparation (Math & Science)',
+    subject: 'Mathematics, Science & Technology, English',
+    level: 'Class 8 (BLE / Basic Level Examination)',
+    type: 'Part-time',
+    location: 'Koteshwor / Jadibuti, Kathmandu',
+    salary: 'NPR 12,000 – 14,000 / mo',
+    schedule: '5:30 PM – 7:00 PM',
+    desc: 'BLE municipal board exam preparation batch. Requires strong clarity in science diagrams, experiments, and mathematics word problems.'
+  },
+  bachelor_bba: {
+    title: 'Bachelor Level (BBA / BBS / BIM) Finance & Stats Tutor',
+    subject: 'Financial Accounting, Business Statistics, Cost Accounting',
+    level: 'Bachelor (TU / PU / KU)',
+    type: 'Weekend only',
+    location: 'Putalisadak / Bagbazar, Kathmandu',
+    salary: 'NPR 18,000 – 22,000 / mo',
+    schedule: 'Morning 7:00 AM – 8:30 AM or Weekends',
+    desc: 'Specialist tutor for semester exam preparation in managerial accounting, capital budgeting, and business analytics.'
+  },
+  a_levels: {
+    title: 'Cambridge A-Levels / CBSE Board Specialist Tutor',
+    subject: 'Pure Mathematics (P1/P3), Mechanics, Physics 9702',
+    level: 'Cambridge AS & A Level / CBSE Grade 11-12',
+    type: 'Part-time',
+    location: 'Jhamsikhel / Sanepa, Lalitpur',
+    salary: 'NPR 20,000 – 25,000 / mo',
+    schedule: '5:00 PM – 6:30 PM',
+    desc: 'Experienced in Cambridge past paper series 9709/9702 with strong focus on marking scheme criteria and past year variants.'
+  },
+  spoken_eng: {
+    title: 'Spoken English & Communication Coach',
+    subject: 'Spoken English, Accent, Daily Conversation, Vocabulary',
+    level: 'Beginner to Advanced (All Ages)',
+    type: 'Online',
+    location: 'Kathmandu Valley / Online Live',
+    salary: 'NPR 10,000 – 14,000 / mo',
+    schedule: 'Flexible (1 hour/day)',
+    desc: 'Interactive speaking sessions, accent neutralization, interview prep, and everyday professional conversation practice.'
+  }
+};
+
 function renderAdminVacancies(){
   const el = document.getElementById('vac_list');
+  if(!el) return;
   el.innerHTML = data.vacancies.map(v => {
     const isVer = isVacancyVerified(v);
     const statusLabel = isVer ? 'Verified (Closed)' : (v.status==='filled' ? 'Filled (Closed)' : 'Open');
@@ -224,7 +310,8 @@ function renderAdminVacancies(){
     <div class="admin-list-item">
       <div class="info">
         <b>${escapeHtml(v.title)}</b>
-        <span>${escapeHtml(v.subject||'')} · Status: ${statusLabel} · ${appsCount} applicant(s)</span>
+        <span>${escapeHtml(v.subject||'')} · Location: ${escapeHtml(v.location||'N/A')} · Pay: ${escapeHtml(v.salary||'N/A')} · Status: ${statusLabel} · ${appsCount} applicant(s)</span>
+        ${v.imageUrl ? `<span style="color:var(--accent);font-size:11.5px;">📸 Poster image attached</span>` : ''}
       </div>
       <div class="row-actions">
         <button class="mini-btn" onclick="editVacancy('${v.id}')">Edit</button>
@@ -234,54 +321,481 @@ function renderAdminVacancies(){
   `;
   }).join('') || '<p class="empty-note">No vacancies yet.</p>';
 }
+
 document.getElementById('vac_addBtn').addEventListener('click', () => openVacancyEdit(null));
 document.getElementById('vacEditCloseBtn').addEventListener('click', () => vacEditOverlay.classList.remove('open'));
 vacEditOverlay.addEventListener('click', e => { if(e.target === vacEditOverlay) vacEditOverlay.classList.remove('open'); });
 
 function openVacancyEdit(id){
   const v = id ? data.vacancies.find(x=>x.id===id) : null;
-  document.getElementById('vacEditTitle').textContent = v ? 'Edit vacancy' : 'Post vacancy';
+  vac_pendingFile = null;
+  document.getElementById('vacEditTitle').textContent = v ? 'Edit Vacancy' : 'Post Vacancy';
   document.getElementById('vac_id').value = v ? v.id : '';
   document.getElementById('vac_title').value = v ? v.title : '';
-  document.getElementById('vac_subject').value = v ? v.subject : '';
-  document.getElementById('vac_type').value = v ? v.type : 'Part-time';
-  document.getElementById('vac_location').value = v ? v.location : '';
-  document.getElementById('vac_salary').value = v ? v.salary : '';
-  document.getElementById('vac_desc').value = v ? v.description : '';
-  document.getElementById('vac_status').value = v ? v.status : 'open';
+  document.getElementById('vac_subject').value = v ? (v.subject||'') : '';
+  document.getElementById('vac_level').value = v ? (v.level||'') : '';
+  document.getElementById('vac_type').value = v ? (v.type||'Part-time') : 'Part-time';
+  document.getElementById('vac_location').value = v ? (v.location||'') : '';
+  document.getElementById('vac_salary').value = v ? (v.salary||'') : '';
+  document.getElementById('vac_schedule').value = v ? (v.schedule||'') : '';
+  const descEl = document.getElementById('vac_desc');
+  if(descEl) descEl.value = v ? (v.description||'') : '';
+  const statusEl = document.getElementById('vac_status');
+  if(statusEl) statusEl.value = v ? (v.status||'open') : 'open';
+  
+  // Image Upload reset & state
+  document.getElementById('vac_file').value = '';
+  document.getElementById('vac_imageUrl').value = v ? (v.imageUrl||'') : '';
+  const preview = document.getElementById('vac_preview');
+  const previewImg = document.getElementById('vac_previewImg');
+  if(v && v.imageUrl){
+    previewImg.src = v.imageUrl;
+    preview.style.display = 'block';
+    document.getElementById('vac_previewFileName').textContent = 'Current flyer image';
+  } else {
+    previewImg.src = '';
+    preview.style.display = 'none';
+  }
+
+  // Quick inputs
+  const presetSelect = document.getElementById('vac_presetSelect');
+  if(presetSelect) presetSelect.value = '';
+  const quickText = document.getElementById('vac_quickText');
+  if(quickText) quickText.value = '';
+
   document.getElementById('vac_err').classList.remove('show');
   vacEditOverlay.classList.add('open');
 }
+
+// Preset template apply button
+const applyPresetBtn = document.getElementById('vac_applyPresetBtn');
+if(applyPresetBtn){
+  applyPresetBtn.addEventListener('click', () => {
+    const key = document.getElementById('vac_presetSelect').value;
+    if(!key || !VACANCY_PRESETS[key]){
+      showToast('Please choose a template from the dropdown first');
+      return;
+    }
+    const p = VACANCY_PRESETS[key];
+    document.getElementById('vac_title').value = p.title;
+    document.getElementById('vac_subject').value = p.subject;
+    document.getElementById('vac_level').value = p.level;
+    document.getElementById('vac_type').value = p.type;
+    document.getElementById('vac_location').value = p.location;
+    document.getElementById('vac_salary').value = p.salary;
+    document.getElementById('vac_schedule').value = p.schedule;
+    document.getElementById('vac_desc').value = p.desc;
+    showToast('Template fields autofilled! You can still edit any text below.');
+  });
+}
+
+// Reusable text parser for vacancy fields
+function parseVacancyTextAndFillFields(raw){
+  if(!raw) return;
+  let title = '';
+  let subject = '';
+  let level = '';
+  let type = 'Part-time';
+  let location = 'Kathmandu Valley';
+  let salary = '';
+  let schedule = '';
+
+  // Detect level/grade
+  if(/class\s*(?:9|10)|grade\s*(?:9|10)|see\b/i.test(raw)){
+    level = 'Class 9 & 10 (SEE)';
+  } else if(/\+2|grade\s*(?:11|12)|class\s*(?:11|12)|neb\b/i.test(raw)){
+    level = '+2 / NEB (Grade 11–12)';
+  } else if(/class\s*8|grade\s*8|ble\b/i.test(raw)){
+    level = 'Class 8 (BLE)';
+  } else if(/primary|class\s*[1-5]|grade\s*[1-5]/i.test(raw)){
+    level = 'Primary (Class 1–5)';
+  } else if(/bachelor|bba|bbs|bim/i.test(raw)){
+    level = 'Bachelor Level';
+  } else if(/a-level|a\s*level|cambridge/i.test(raw)){
+    level = 'A-Levels / CBSE';
+  }
+
+  // Detect subjects
+  const foundSubjects = [];
+  if(/opt(?:\.|\s*)math|comp(?:\.|\s*)math|math|mathematics|calculus|algebra/i.test(raw)) foundSubjects.push('Mathematics');
+  if(/physics|science|chem|chemistry|biology/i.test(raw)) foundSubjects.push('Science');
+  if(/account|economics|finance|business/i.test(raw)) foundSubjects.push('Accountancy & Economics');
+  if(/english|spoken/i.test(raw)) foundSubjects.push('English');
+  if(/nepali/i.test(raw)) foundSubjects.push('Nepali');
+  if(/social/i.test(raw)) foundSubjects.push('Social Studies');
+  subject = foundSubjects.join(', ') || 'All Subjects';
+
+  // Detect location
+  const locationsList = ['Baneshwor', 'Kumaripati', 'Pulchowk', 'Jawalakhel', 'Jhamsikhel', 'Kalanki', 'Koteshwor', 'Chabahil', 'Maharajgunj', 'Kirtipur', 'Lalitpur', 'Bhaktapur', 'Sanepa', 'Boudha', 'Sinamangal', 'Putalisadak', 'Kathmandu'];
+  for(const loc of locationsList){
+    if(new RegExp('\\b' + loc + '\\b', 'i').test(raw)){
+      location = `${loc}, Kathmandu Valley`;
+      break;
+    }
+  }
+
+  // Detect Salary
+  const salMatch = raw.match(/(?:npr|rs\.?|salary|pay|fee)?\s*(\d{1,2}[,\.]?\d{3}|\d+k)(?:\s*(?:to|-)\s*(\d{1,2}[,\.]?\d{3}|\d+k))?(?:\s*\/\s*(?:mo|month))?/i);
+  if(salMatch){
+    salary = `NPR ${salMatch[1]}${salMatch[2] ? ' – ' + salMatch[2] : ''} / month`;
+  }
+
+  // Detect timing/schedule
+  const timeMatch = raw.match(/(\d{1,2}(?::\d{2})?\s*(?:am|pm)?\s*(?:to|-)\s*\d{1,2}(?::\d{2})?\s*(?:am|pm))/i);
+  if(timeMatch){
+    schedule = timeMatch[1];
+  } else if(/morning/i.test(raw)){
+    schedule = 'Morning Batch (6:30 AM – 8:00 AM)';
+  } else if(/evening/i.test(raw)){
+    schedule = 'Evening Batch (5:00 PM – 6:30 PM)';
+  }
+
+  // Detect Type
+  if(/full\s*time/i.test(raw)) type = 'Full-time';
+  else if(/weekend/i.test(raw)) type = 'Weekend only';
+  else if(/online/i.test(raw)) type = 'Online';
+  else if(/morning/i.test(raw)) type = 'Morning Batch';
+  else if(/evening/i.test(raw)) type = 'Evening Batch';
+
+  // Form title
+  title = `${subject} Home Tutor (${level || 'Kathmandu Valley'})`;
+
+  // Fill the inputs
+  document.getElementById('vac_title').value = title;
+  document.getElementById('vac_subject').value = subject;
+  document.getElementById('vac_level').value = level || 'School / College';
+  document.getElementById('vac_type').value = type;
+  document.getElementById('vac_location').value = location;
+  if(salary) document.getElementById('vac_salary').value = salary;
+  if(schedule) document.getElementById('vac_schedule').value = schedule;
+  document.getElementById('vac_desc').value = raw;
+}
+
+// Smart text parser button
+const quickParseBtn = document.getElementById('vac_quickParseBtn');
+if(quickParseBtn){
+  quickParseBtn.addEventListener('click', () => {
+    const raw = (document.getElementById('vac_quickText').value || '').trim();
+    if(!raw){
+      showToast('Please paste or write some vacancy requirement text first');
+      return;
+    }
+    parseVacancyTextAndFillFields(raw);
+    showToast('✨ Text parsed and autofilled into all fields below!');
+  });
+}
+
+/* ==================== EXTRACT TEXT FROM IMAGE (OCR) ==================== */
+function quickScaleImageForOCR(fileOrUrl, maxDimension = 1000, quality = 0.82){
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.crossOrigin = 'Anonymous';
+    img.onload = () => {
+      let w = img.width;
+      let h = img.height;
+      if(w > maxDimension || h > maxDimension){
+        if(w > h){
+          h = Math.round((h * maxDimension) / w);
+          w = maxDimension;
+        } else {
+          w = Math.round((w * maxDimension) / h);
+          h = maxDimension;
+        }
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, w, h);
+      resolve(canvas.toDataURL('image/jpeg', quality));
+    };
+    img.onerror = () => {
+      if(typeof fileOrUrl === 'string') resolve(fileOrUrl);
+      else {
+        const reader = new FileReader();
+        reader.onload = (e) => resolve(e.target.result);
+        reader.onerror = () => resolve(null);
+        reader.readAsDataURL(fileOrUrl);
+      }
+    };
+    if(typeof fileOrUrl === 'string'){
+      img.src = fileOrUrl;
+    } else {
+      img.src = URL.createObjectURL(fileOrUrl);
+    }
+  });
+}
+
+async function extractTextFromVacancyImage(){
+  const imageUrlInput = document.getElementById('vac_imageUrl');
+  const statusBox = document.getElementById('vac_ocrStatus');
+  const statusText = document.getElementById('vac_ocrStatusText');
+  const textBox = document.getElementById('vac_extractedTextBox');
+  const textArea = document.getElementById('vac_extractedText');
+  const extractBtn = document.getElementById('vac_extractFromImgBtn');
+
+  let rawSource = null;
+  if(vac_pendingFile){
+    rawSource = vac_pendingFile;
+  } else if(imageUrlInput && imageUrlInput.value.trim()){
+    rawSource = imageUrlInput.value.trim();
+  }
+
+  if(!rawSource){
+    showToast('Please select an image file or enter an image URL first.');
+    return;
+  }
+
+  if(statusBox){
+    statusBox.style.display = 'block';
+    statusBox.style.background = 'rgba(255,193,7,0.12)';
+    statusBox.style.borderColor = 'rgba(255,193,7,0.35)';
+    statusText.textContent = '⚡ Extracting text & details instantly...';
+  }
+  if(extractBtn){
+    extractBtn.disabled = true;
+    extractBtn.textContent = '⚡ Extracting...';
+  }
+
+  try{
+    // Ultra-fast canvas compression before network call
+    const imageSource = await quickScaleImageForOCR(rawSource, 1000, 0.82);
+
+    const res = await fetch('/api/extract-text', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ image: imageSource, mimeType: 'image/jpeg' })
+    });
+
+    const result = await res.json();
+
+    if(res.ok && result && (result.extractedText || result.parsed)){
+      const raw = result.extractedText || (result.parsed ? result.parsed.rawText : '') || '';
+      
+      if(textArea) textArea.value = raw;
+      if(textBox) textBox.style.display = 'block';
+      if(statusBox){
+        statusBox.style.background = 'rgba(76, 175, 80, 0.15)';
+        statusBox.style.borderColor = 'rgba(76, 175, 80, 0.4)';
+        statusText.textContent = '✅ Extracted & autofilled!';
+      }
+
+      if(result.parsed){
+        const p = result.parsed;
+        if(p.title) document.getElementById('vac_title').value = p.title;
+        if(p.subject) document.getElementById('vac_subject').value = p.subject;
+        if(p.level) document.getElementById('vac_level').value = p.level;
+        if(p.type) document.getElementById('vac_type').value = p.type;
+        if(p.location) document.getElementById('vac_location').value = p.location;
+        if(p.salary) document.getElementById('vac_salary').value = p.salary;
+        if(p.schedule) document.getElementById('vac_schedule').value = p.schedule;
+        const descEl = document.getElementById('vac_desc');
+        if(descEl){
+          if(p.description) descEl.value = p.description;
+          else if(raw) descEl.value = raw;
+        }
+      } else if(raw){
+        parseVacancyTextAndFillFields(raw);
+      }
+
+      showToast('✨ Form fields autofilled from image!');
+    } else {
+      // Fallback to client-side OCR
+      await runClientSideOCR(imageSource);
+    }
+  }catch(err){
+    console.warn('Server OCR failed, attempting client OCR fallback:', err);
+    await runClientSideOCR(rawSource);
+  }finally{
+    if(extractBtn){
+      extractBtn.disabled = false;
+      extractBtn.textContent = '✨ Extract Text from Image';
+    }
+  }
+}
+
+async function runClientSideOCR(imgSrc){
+  const statusBox = document.getElementById('vac_ocrStatus');
+  const statusText = document.getElementById('vac_ocrStatusText');
+  const textBox = document.getElementById('vac_extractedTextBox');
+  const textArea = document.getElementById('vac_extractedText');
+
+  if(statusText) statusText.textContent = '🔍 Running client-side image OCR engine...';
+
+  try{
+    if(!window.Tesseract){
+      await new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
+        script.onload = resolve;
+        script.onerror = () => reject(new Error('Failed to load OCR script'));
+        document.head.appendChild(script);
+      });
+    }
+
+    const scaled = await quickScaleImageForOCR(imgSrc, 1000, 0.85);
+    const { data: { text } } = await window.Tesseract.recognize(scaled, 'eng', {
+      logger: m => {
+        if(m.status === 'recognizing text' && statusText){
+          statusText.textContent = `🔍 Recognizing text: ${Math.round((m.progress||0) * 100)}%`;
+        }
+      }
+    });
+
+    const cleaned = (text || '').trim();
+    if(textArea) textArea.value = cleaned;
+    if(textBox) textBox.style.display = 'block';
+    if(statusBox){
+      statusBox.style.background = 'rgba(76, 175, 80, 0.15)';
+      statusBox.style.borderColor = 'rgba(76, 175, 80, 0.4)';
+      statusText.textContent = '✅ Text extracted from image!';
+    }
+
+    parseVacancyTextAndFillFields(cleaned);
+    showToast('✨ Text extracted from image!');
+  }catch(e){
+    if(statusBox){
+      statusBox.style.background = 'rgba(244, 67, 54, 0.15)';
+      statusBox.style.borderColor = 'rgba(244, 67, 54, 0.4)';
+      statusText.textContent = '⚠️ Could not read image text. Please enter details manually.';
+    }
+    showToast('Could not process image OCR');
+  }
+}
+
+const extractFromImgBtn = document.getElementById('vac_extractFromImgBtn');
+if(extractFromImgBtn){
+  extractFromImgBtn.addEventListener('click', extractTextFromVacancyImage);
+}
+
+const copyExtractedBtn = document.getElementById('vac_copyExtractedTextBtn');
+if(copyExtractedBtn){
+  copyExtractedBtn.addEventListener('click', () => {
+    const text = (document.getElementById('vac_extractedText').value || '').trim();
+    if(!text){ showToast('No extracted text to copy'); return; }
+    navigator.clipboard.writeText(text).then(() => {
+      showToast('Extracted text copied to clipboard!');
+    }).catch(() => {
+      showToast('Failed to copy text');
+    });
+  });
+}
+
+// Image upload file input listener (Auto-extracts instantly)
+const vacFileInput = document.getElementById('vac_file');
+if(vacFileInput){
+  vacFileInput.addEventListener('change', (e) => {
+    const file = e.target.files && e.target.files[0];
+    if(!file) return;
+    if(!file.type.startsWith('image/')){
+      showToast('Please choose an image file (PNG, JPG, WebP)');
+      e.target.value = '';
+      return;
+    }
+    vac_pendingFile = file;
+    document.getElementById('vac_imageUrl').value = '';
+    document.getElementById('vac_previewImg').src = URL.createObjectURL(file);
+    document.getElementById('vac_previewFileName').textContent = `Selected: ${file.name}`;
+    document.getElementById('vac_preview').style.display = 'block';
+    
+    // Auto-trigger ultra-fast extraction immediately
+    extractTextFromVacancyImage();
+  });
+}
+
+// Image URL input listener
+const vacImageUrlInput = document.getElementById('vac_imageUrl');
+if(vacImageUrlInput){
+  vacImageUrlInput.addEventListener('change', (e) => {
+    const val = e.target.value.trim();
+    const preview = document.getElementById('vac_preview');
+    const previewImg = document.getElementById('vac_previewImg');
+    if(val){
+      vac_pendingFile = null;
+      previewImg.src = val;
+      document.getElementById('vac_previewFileName').textContent = 'Image URL linked';
+      preview.style.display = 'block';
+      extractTextFromVacancyImage();
+    } else if(!vac_pendingFile){
+      preview.style.display = 'none';
+    }
+  });
+}
+
+// Remove image button listener
+const vacRemoveImgBtn = document.getElementById('vac_removeImgBtn');
+if(vacRemoveImgBtn){
+  vacRemoveImgBtn.addEventListener('click', () => {
+    vac_pendingFile = null;
+    document.getElementById('vac_file').value = '';
+    document.getElementById('vac_imageUrl').value = '';
+    document.getElementById('vac_previewImg').src = '';
+    document.getElementById('vac_preview').style.display = 'none';
+    showToast('Image removed');
+  });
+}
+
 window.editVacancy = (id) => openVacancyEdit(id);
 window.deleteVacancy = (id) => {
   if(!confirm('Delete this vacancy?')) return;
+  const removed = data.vacancies.find(v=>v.id===id);
   data.vacancies = data.vacancies.filter(v=>v.id!==id);
+  if(removed && removed.imageUrl && (removed.imageUrl.includes('cloudinary.com') || removed.imageUrl.includes('blob.vercel-storage.com'))){
+    deleteBlob(removed.imageUrl);
+  }
   saveData(); renderAdminVacancies(); renderAll();
   showToast('Vacancy deleted');
 };
-document.getElementById('vac_saveBtn').addEventListener('click', () => {
+
+document.getElementById('vac_saveBtn').addEventListener('click', async () => {
   const title = document.getElementById('vac_title').value.trim();
   if(!title){ document.getElementById('vac_err').classList.add('show'); return; }
+  const btn = document.getElementById('vac_saveBtn');
+  const originalLabel = btn.textContent;
   const id = document.getElementById('vac_id').value;
+
+  let imageUrl = document.getElementById('vac_imageUrl').value.trim();
+  if(vac_pendingFile){
+    btn.disabled = true; btn.textContent = 'Uploading image…';
+    try {
+      imageUrl = await uploadToCloudinaryOrStorage(vac_pendingFile, 'gurukul_vacancies', `vac_${Date.now()}`);
+    } catch(err) {
+      imageUrl = await new Promise(resolve => compressImageFile(vac_pendingFile, resolve));
+    }
+  }
+
+  const existingVac = id ? data.vacancies.find(v=>v.id===id) : null;
+  const descEl = document.getElementById('vac_desc');
+  const statusEl = document.getElementById('vac_status');
+
   const obj = {
     id: id || uid('v'),
     title,
     subject: document.getElementById('vac_subject').value.trim(),
+    level: document.getElementById('vac_level').value.trim(),
     type: document.getElementById('vac_type').value,
     location: document.getElementById('vac_location').value.trim(),
     salary: document.getElementById('vac_salary').value.trim(),
-    description: document.getElementById('vac_desc').value.trim(),
-    status: document.getElementById('vac_status').value
+    schedule: document.getElementById('vac_schedule').value.trim(),
+    description: descEl ? descEl.value.trim() : (existingVac ? (existingVac.description || '') : ''),
+    status: statusEl ? statusEl.value : (existingVac ? (existingVac.status || 'open') : 'open'),
+    imageUrl: imageUrl || ''
   };
+
+  btn.textContent = 'Saving…';
   if(id){
     const idx = data.vacancies.findIndex(v=>v.id===id);
     data.vacancies[idx] = obj;
   } else {
     data.vacancies.push(obj);
   }
-  saveData(); renderAdminVacancies(); renderAll();
+
+  await saveData();
+  btn.disabled = false; btn.textContent = originalLabel;
+  vac_pendingFile = null;
+  renderAdminVacancies(); renderAll();
   vacEditOverlay.classList.remove('open');
-  showToast('Vacancy saved');
+  showToast('Vacancy saved successfully!');
 });
 
 /* ---------- APPLICATIONS (teacher applications for vacancies) ---------- */
