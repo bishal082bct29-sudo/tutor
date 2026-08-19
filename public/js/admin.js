@@ -4,12 +4,17 @@ document.querySelectorAll('.admin-tab').forEach(tab => {
     document.querySelectorAll('.admin-tab').forEach(t=>t.classList.remove('active'));
     document.querySelectorAll('.admin-pane').forEach(p=>p.classList.remove('active'));
     tab.classList.add('active');
-    document.getElementById(tab.dataset.pane).classList.add('active');
+    const pane = document.getElementById(tab.dataset.pane);
+    if (pane) pane.classList.add('active');
+    if (tab.dataset.pane === 'videoAdPane' && typeof renderAdminVideoAd === 'function') {
+      renderAdminVideoAd();
+    }
   });
 });
 
 function openAdminPanel(){
   fillProfileForm();
+  if (typeof renderAdminVideoAd === 'function') renderAdminVideoAd();
   renderAdminGroups();
   renderAdminVacancies();
   renderAdminApplications();

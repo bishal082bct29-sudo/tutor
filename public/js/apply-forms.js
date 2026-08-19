@@ -296,24 +296,98 @@ document.getElementById('child_submitBtn').addEventListener('click', async () =>
   const notes = document.getElementById('child_notes').value.trim();
   const errEl = document.getElementById('child_err');
   errEl.classList.remove('show');
-  if(!parentName || !parentPhone){ errEl.textContent = 'Enter the parent/guardian name and phone number.'; errEl.classList.add('show'); return; }
-  if(!childName){ errEl.textContent = "Enter the child's name."; errEl.classList.add('show'); return; }
+
+  if(!parentName || !parentPhone){
+    errEl.textContent = 'Please enter the parent/guardian name and phone number.';
+    errEl.classList.add('show');
+    return;
+  }
+  if(!childName){
+    errEl.textContent = "Please enter the student / child's name.";
+    errEl.classList.add('show');
+    return;
+  }
 
   const btn = document.getElementById('child_submitBtn');
-  const originalLabel = btn.textContent;
-  btn.disabled = true; btn.textContent = 'Sending…';
+  const originalLabel = btn.innerHTML;
+  btn.disabled = true;
+  btn.textContent = 'Saving & opening WhatsApp…';
+
+  const newChildRecord = {
+    id: uid('c'),
+    parentName,
+    parentPhone,
+    parentEmail,
+    childName,
+    age,
+    grade,
+    school,
+    notes,
+    submittedAt: Date.now()
+  };
 
   if(!data.children) data.children = [];
-  data.children.push({
-    id: uid('c'),
-    parentName, parentPhone, parentEmail,
-    childName, age, grade, school, notes,
-    submittedAt: Date.now()
-  });
-  await saveData();
-  btn.disabled = false; btn.textContent = originalLabel;
+  data.children.push(newChildRecord);
+
+  // Save to database
+  try {
+    if (typeof window.saveData === 'function') {
+      await window.saveData();
+    } else {
+      await saveData();
+    }
+  } catch (e) {
+    console.warn('Child record save notice:', e);
+  }
+
+  // Format WhatsApp recipient and message text
+  let rawPhone = (data.profile && data.profile.phone ? data.profile.phone : '9801775074').replace(/[^0-9]/g, '');
+  if (rawPhone.length === 10 && rawPhone.startsWith('98')) {
+    rawPhone = '977' + rawPhone;
+  } else if (!rawPhone.startsWith('977') && rawPhone.length === 10) {
+    rawPhone = '977' + rawPhone;
+  }
+  if (!rawPhone) rawPhone = '9779801775074';
+
+  const waText = 
+`🎓 *New Home Tuition Request — Gurukul Home Tuitions*
+
+👨‍👩‍👧 *Parent / Guardian Details:*
+• Name: ${parentName}
+• Phone: ${parentPhone}${parentEmail ? `\n• Email: ${parentEmail}` : ''}
+
+📚 *Student / Child Information:*
+• Student Name: ${childName}
+• Grade / Level: ${grade || 'Not specified'}
+• Age: ${age || 'Not specified'}
+• School / College: ${school || 'Not specified'}
+
+📝 *Requirements / Location / Subjects:*
+${notes || 'Interested in 2 Days Free Demo Classes'}
+
+✨ *Request:* 2 Days Free Demo Class Placement
+📍 *Source:* Gurukul Home Tuitions (gurukultuition.vercel.app)`;
+
+  const waUrl = `https://wa.me/${rawPhone}?text=${encodeURIComponent(waText)}`;
+
+  btn.disabled = false;
+  btn.innerHTML = originalLabel;
   document.getElementById('child_ok').classList.add('show');
-  showToast('Child details sent!');
-  setTimeout(() => { childOverlay.classList.remove('open'); }, 1200);
+  showToast('✓ Child details saved! Opening WhatsApp…');
+
+  // Open WhatsApp in new tab / app
+  try {
+    const newWindow = window.open(waUrl, '_blank');
+    if (!newWindow || newWindow.closed || typeof newWindow.closed === 'undefined') {
+      // If popup blocker blocked _blank, fallback to location href
+      window.location.href = waUrl;
+    }
+  } catch (err) {
+    window.location.href = waUrl;
+  }
+
+  setTimeout(() => {
+    childOverlay.classList.remove('open');
+  }, 1200);
 });
 

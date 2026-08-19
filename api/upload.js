@@ -1,5 +1,21 @@
 import { getCloudinary } from '../lib/cloudinary.js';
 import { handleUpload } from '@vercel/blob/client';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const uploadsDir = path.join(__dirname, '..', 'public', 'uploads');
+
+// Ensure public/uploads exists
+try {
+  if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir, { recursive: true });
+  }
+} catch (e) {
+  console.warn('Uploads dir init warning:', e.message);
+}
 
 export default async function handler(request, response) {
   // Allow GET to check storage provider status
@@ -14,24 +30,27 @@ export default async function handler(request, response) {
       cloudinary: !!c,
       vercelBlob: !!process.env.BLOB_READ_WRITE_TOKEN,
       neonDatabase: hasNeon,
-      provider: c ? 'cloudinary' : (process.env.BLOB_READ_WRITE_TOKEN ? 'vercel-blob' : 'local-data-url'),
+      provider: c ? 'cloudinary' : (process.env.BLOB_READ_WRITE_TOKEN ? 'vercel-blob' : 'local-uploads'),
     });
   }
 
   const body = request.body || {};
 
-  // Check if this is a direct upload request for Cloudinary or file processing
+  // Check if this is an upload request
   if (body.file || body.image || body.dataUrl || (body.action === 'upload' && body.content)) {
     const fileData = body.file || body.image || body.dataUrl || body.content;
     const folder = body.folder || 'gurukultuition';
+    const rawFilename = (body.filename || ('upload_' + Date.now())).replace(/[^a-zA-Z0-9_\-]/g, '_');
+    const isVideo = typeof fileData === 'string' && (fileData.startsWith('data:video') || fileData.includes('video/'));
+
     const c = getCloudinary();
 
     if (c) {
       try {
         const uploadResult = await c.uploader.upload(fileData, {
           folder: folder,
-          resource_type: 'auto',
-          public_id: body.filename ? body.filename.replace(/[^a-zA-Z0-9_\-]/g, '_') : undefined,
+          resource_type: isVideo ? 'video' : 'auto',
+          public_id: rawFilename,
         });
 
         return response.status(200).json({
@@ -44,19 +63,56 @@ export default async function handler(request, response) {
           height: uploadResult.height,
         });
       } catch (err) {
-        console.error('Cloudinary upload error:', err);
-        return response.status(500).json({
-          error: 'Cloudinary upload failed: ' + (err.message || 'Unknown error'),
-          details: err,
-        });
+        console.warn('Cloudinary upload warning, saving to local static storage:', err.message);
+        // Fallthrough to local static file writer
       }
-    } else {
-      // Cloudinary not configured in env, return fallback data URL
+    }
+
+    // Save to local static `/uploads` storage to avoid massive base64 strings in JSON/localStorage
+    try {
+      if (typeof fileData === 'string' && fileData.includes(';base64,')) {
+        const match = fileData.match(/^data:([^;]+);base64,(.+)$/);
+        if (match) {
+          const mime = match[1];
+          const base64Data = match[2];
+          let ext = 'bin';
+
+          if (mime.includes('mp4')) ext = 'mp4';
+          else if (mime.includes('webm')) ext = 'webm';
+          else if (mime.includes('ogg')) ext = 'ogv';
+          else if (mime.includes('quicktime') || mime.includes('mov')) ext = 'mov';
+          else if (mime.includes('jpeg') || mime.includes('jpg')) ext = 'jpg';
+          else if (mime.includes('png')) ext = 'png';
+          else if (mime.includes('webp')) ext = 'webp';
+          else if (mime.includes('svg')) ext = 'svg';
+          else if (mime.includes('pdf')) ext = 'pdf';
+
+          const targetFilename = `${rawFilename}.${ext}`;
+          const targetPath = path.join(uploadsDir, targetFilename);
+          const buffer = Buffer.from(base64Data, 'base64');
+
+          await fs.promises.writeFile(targetPath, buffer);
+
+          return response.status(200).json({
+            ok: true,
+            provider: 'local-uploads',
+            url: `/uploads/${targetFilename}`,
+            filename: targetFilename,
+            size: buffer.length,
+          });
+        }
+      }
+
+      // If already a URL or path, return as is
       return response.status(200).json({
         ok: true,
         provider: 'local-fallback',
         url: fileData,
-        warning: 'CLOUDINARY_URL or credentials not set; stored as inline data.',
+      });
+    } catch (saveErr) {
+      console.error('Local static upload save error:', saveErr);
+      return response.status(500).json({
+        error: 'Failed to save file: ' + saveErr.message,
       });
     }
   }
@@ -77,13 +133,14 @@ export default async function handler(request, response) {
         return {
           allowedContentTypes: [
             'image/*',
+            'video/*',
             'application/pdf',
             'application/msword',
             'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
             'text/plain',
           ],
           addRandomSuffix: true,
-          maximumSizeInBytes: 10 * 1024 * 1024,
+          maximumSizeInBytes: 100 * 1024 * 1024,
         };
       },
       onUploadCompleted: async ({ blob }) => {
@@ -97,4 +154,3 @@ export default async function handler(request, response) {
     return response.status(400).json({ error: error.message });
   }
 }
-

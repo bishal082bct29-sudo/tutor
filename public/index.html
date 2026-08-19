@@ -227,6 +227,94 @@
     </div>
   </div>
 </div>
+
+<!-- ================= GOOGLE VIDEO AD OVERLAY ================= -->
+<div class="g-ad-overlay" id="googleVideoAdModal" role="dialog" aria-modal="true" aria-label="Google Video Advertisement">
+  <div class="g-ad-modal">
+    <!-- Top Google Ad Header Bar -->
+    <div class="g-ad-topbar">
+      <div class="g-ad-top-left">
+        <span class="g-ad-badge">Ad</span>
+        <span class="g-ad-network-label">
+          <span id="gAdTimerText">0:00 / 0:00</span> · 
+          <a href="https://gurukultuition.vercel.app/" class="g-ad-domain-link" target="_blank" rel="noopener">gurukultuition.vercel.app</a>
+        </span>
+        <button class="g-ad-info-btn" id="gAdInfoBtn" title="About this Google Ad" aria-label="About this Google Ad">ⓘ</button>
+      </div>
+      <div class="g-ad-top-right">
+        <button class="g-ad-close-x" id="gAdCloseBtn" title="Close / Skip Ad" aria-label="Close Ad">&times;</button>
+      </div>
+    </div>
+
+    <!-- About this Google Ad Info Popup -->
+    <div class="g-ad-about-popup" id="gAdAboutPopup">
+      <h5>About This Google Video Ad</h5>
+      <p style="margin-bottom:8px;"><strong>Advertiser:</strong> Gurukul Home Tuitions Nepal</p>
+      <p style="margin-bottom:8px;"><strong>Verified Category:</strong> Home Tuition &amp; Private Tutor Network (Kathmandu, Lalitpur, Bhaktapur)</p>
+      <p style="margin-bottom:8px;"><strong>Offer:</strong> 2 Days FREE Demo Classes for Nursery to Bachelor level students.</p>
+      <p style="font-size:11.5px;color:#94a3b8;margin:0;">Served via Google Ad Network partner integration.</p>
+    </div>
+
+    <!-- Video Player Stage -->
+    <div class="g-ad-video-stage">
+      <video id="gAdVideo" class="g-ad-video-element" playsinline webkit-playsinline preload="auto" muted>
+        <source src="https://res.cloudinary.com/demo/video/upload/q_auto,f_auto/gurukul_tuition_promo.mp4" type="video/mp4">
+        Your browser does not support HTML5 video.
+      </video>
+      <canvas id="gAdCanvas" class="g-ad-canvas-element" width="1280" height="720"></canvas>
+
+      <!-- Animated Unmute Button -->
+      <button class="g-ad-unmute-overlay" id="gAdUnmuteBtn" aria-label="Toggle Mute Sound">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+          <line x1="23" y1="9" x2="17" y2="15"></line>
+          <line x1="17" y1="9" x2="23" y2="15"></line>
+        </svg>
+        <span>Tap to Unmute</span>
+      </button>
+
+      <!-- Skip Ad Box -->
+      <div class="g-ad-skip-container">
+        <div class="g-ad-skip-counter" id="gAdSkipCounter">
+          Skip Ad in <strong id="gAdCountdown">5</strong>s
+        </div>
+        <button class="g-ad-skip-btn" id="gAdSkipBtn" style="display:none;" aria-label="Skip Advertisement">
+          <span>Skip Ad</span>
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+            <path d="M5 4v16l12-8L5 4zm14 0v16h2V4h-2z"/>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Minimal In-Video Progress Track -->
+      <div class="g-ad-progress-track">
+        <div class="g-ad-progress-fill" id="gAdProgressFill"></div>
+      </div>
+    </div>
+
+    <!-- Bottom Google Ad Action Bar -->
+    <div class="g-ad-bottombar">
+      <div class="g-ad-brand-info">
+        <div class="g-ad-brand-logo" id="gAdBrandLogo">HT</div>
+        <div class="g-ad-brand-texts">
+          <h4 id="gAdBrandTitle">Gurukul Home Tuitions <span class="g-ad-verified-badge" title="Verified Advertiser">✓</span></h4>
+          <p id="gAdBrandTagline">Class 1 to 12 All Subjects · 2 Days FREE Demo Class · Kathmandu Valley</p>
+        </div>
+      </div>
+      <div class="g-ad-cta-group">
+        <button class="g-ad-cta-whatsapp" id="gAdCtaWhatsApp">
+          <svg viewBox="0 0 24 24" width="17" height="17" fill="currentColor"><path d="M20.52 3.48A11.93 11.93 0 0 0 12.06 0C5.46 0 .09 5.37.09 11.97c0 2.11.55 4.17 1.6 5.99L0 24l6.21-1.63a11.93 11.93 0 0 0 5.85 1.51h.01c6.6 0 11.97-5.37 11.97-11.97 0-3.2-1.25-6.21-3.52-8.43zM12.07 21.87h-.01a9.9 9.9 0 0 1-5.05-1.39l-.36-.21-3.75.98 1-3.66-.23-.37a9.9 9.9 0 0 1-1.52-5.25c0-5.48 4.46-9.94 9.95-9.94 2.66 0 5.15 1.03 7.03 2.91a9.88 9.88 0 0 1 2.91 7.03c0 5.48-4.46 9.9-9.93 9.9zm5.45-7.44c-.3-.15-1.77-.87-2.04-.97-.27-.1-.47-.15-.67.15-.2.3-.77.97-.94 1.17-.17.2-.35.22-.65.07-.3-.15-1.27-.47-2.42-1.5-.89-.8-1.5-1.78-1.67-2.08-.17-.3-.02-.46.13-.61.14-.14.3-.35.45-.52.15-.17.2-.3.3-.5.1-.2.05-.37-.02-.52-.08-.15-.67-1.62-.92-2.22-.24-.58-.49-.5-.67-.51h-.57c-.2 0-.52.07-.8.37-.27.3-1.05 1.02-1.05 2.5 0 1.47 1.07 2.9 1.22 3.1.15.2 2.1 3.21 5.1 4.5.71.31 1.27.49 1.7.63.72.23 1.37.2 1.89.12.58-.09 1.77-.72 2.02-1.42.25-.7.25-1.3.17-1.42-.07-.13-.27-.2-.57-.35z"/></svg>
+          <span>WhatsApp Us</span>
+        </button>
+        <button class="g-ad-cta-primary" id="gAdCtaPrimary">
+          <span>Book 2 Days Free Demo</span>
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
   (function(){
     try {
@@ -718,21 +806,23 @@
       <h3>Register your child</h3>
       <button class="icon-btn" id="childCloseBtn">&times;</button>
     </div>
-    <div class="field"><label>Parent / guardian name</label><input id="child_parentName" placeholder="Your full name"></div>
-    <div class="field"><label>Parent phone number</label><input type="tel" id="child_parentPhone" placeholder="e.g. 9779800000000"></div>
+    <div class="field"><label>Parent / guardian name *</label><input id="child_parentName" placeholder="Your full name"></div>
+    <div class="field"><label>Parent phone number (WhatsApp) *</label><input type="tel" id="child_parentPhone" placeholder="e.g. 9801775074"></div>
     <div class="field"><label>Parent email (optional)</label><input type="email" id="child_parentEmail" placeholder="you@example.com"></div>
     <div class="field-row">
-      <div class="field"><label>Child's name</label><input id="child_name" placeholder="Child's full name"></div>
-      <div class="field"><label>Child's age</label><input type="number" min="1" max="25" id="child_age" placeholder="e.g. 12"></div>
+      <div class="field"><label>Child / Student name *</label><input id="child_name" placeholder="Student full name"></div>
+      <div class="field"><label>Age</label><input type="number" min="1" max="25" id="child_age" placeholder="e.g. 14"></div>
     </div>
     <div class="field-row">
-      <div class="field"><label>Grade / class</label><input id="child_grade" placeholder="e.g. Grade 8"></div>
-      <div class="field"><label>School</label><input id="child_school" placeholder="School name"></div>
+      <div class="field"><label>Grade / Class / Level</label><input id="child_grade" placeholder="e.g. Class 10 / SEE / +2"></div>
+      <div class="field"><label>School / College</label><input id="child_school" placeholder="School or college name"></div>
     </div>
-    <div class="field"><label>Subjects needed / notes (optional)</label><textarea id="child_notes" rows="3" placeholder="Subjects your child needs help with, learning needs, allergies, or anything else we should know"></textarea></div>
+    <div class="field"><label>Subjects needed &amp; Location / Notes (optional)</label><textarea id="child_notes" rows="3" placeholder="e.g. Math &amp; Science home tuition in Baneshwor, 2-day free demo"></textarea></div>
     <div class="err-msg" id="child_err"></div>
-    <div class="ok-msg" id="child_ok">Details sent — we'll be in touch!</div>
-    <button class="pill-btn" style="width:100%;" id="child_submitBtn">Submit details</button>
+    <div class="ok-msg" id="child_ok">✓ Saved! Opening WhatsApp to send your request…</div>
+    <button class="pill-btn" style="width:100%;display:flex;align-items:center;justify-content:center;gap:8px;" id="child_submitBtn">
+      <span>💬 Send &amp; Book via WhatsApp</span>
+    </button>
   </div>
 </div>
 
@@ -748,6 +838,7 @@
     </div>
     <div class="admin-tabs">
       <button class="admin-tab active" data-pane="profilePane">Profile</button>
+      <button class="admin-tab" data-pane="videoAdPane">Video Ad</button>
       <button class="admin-tab" data-pane="groupsPane">Groups</button>
       <button class="admin-tab" data-pane="vacPane">Vacancies</button>
       <button class="admin-tab" data-pane="appsPane">Applications</button>
@@ -773,6 +864,69 @@
       <div class="field"><label>Students taught (total, for the stat above)</label><input id="pf_studentsTaught" type="number" min="0"></div>
       <button class="pill-btn" style="width:100%;" id="pf_saveBtn">Save profile</button>
       <div class="ok-msg" id="pf_ok">Saved.</div>
+    </div>
+
+    <!-- VIDEO AD (Google In-Stream Video Ad) -->
+    <div class="admin-pane" id="videoAdPane">
+      <div class="field">
+        <label>Direct Video URL (Cloudinary / CDN / MP4 link)</label>
+        <input id="ad_videoUrl" placeholder="https://res.cloudinary.com/.../video_ad.mp4">
+      </div>
+
+      <div class="field-row">
+        <div class="field">
+          <label>Ad Headline / Title</label>
+          <input id="ad_title" placeholder="Gurukul Home Tuitions">
+        </div>
+        <div class="field">
+          <label>Skip Ad Countdown (seconds)</label>
+          <input id="ad_skipSeconds" type="number" min="1" max="30" value="5">
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Ad Subtitle / Offer Details</label>
+        <input id="ad_tagline" placeholder="Best Home Tutors in Kathmandu · Target A+ · Nursery to Bachelor">
+      </div>
+
+      <div class="field-row">
+        <div class="field">
+          <label>CTA Button Text</label>
+          <input id="ad_ctaText" placeholder="Book 2 Days Free Demo Class">
+        </div>
+        <div class="field">
+          <label>CTA Button Action</label>
+          <select id="ad_ctaAction">
+            <option value="whatsapp">Open WhatsApp Chat</option>
+            <option value="call">Call Phone Directly</option>
+            <option value="groups">Scroll to Tuition Batches</option>
+            <option value="parents">Scroll to Parent Request Form</option>
+            <option value="vacancies">Scroll to Tutor Vacancies</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Display Frequency</label>
+        <select id="ad_frequency">
+          <option value="always">Every page visit / refresh (Always)</option>
+          <option value="session">Once per browser session</option>
+          <option value="once_daily">Once every 24 hours per visitor</option>
+        </select>
+      </div>
+
+      <div class="video-ad-preview-box">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+          <h4 style="font-size:13px;color:var(--accent2);text-transform:uppercase;letter-spacing:1px;margin:0;">Video Preview</h4>
+          <button class="mini-btn" type="button" onclick="showVideoAd(true)" style="padding:6px 14px;">▶ Preview Live Ad Modal</button>
+        </div>
+        <video id="ad_adminPreviewVideo" controls playsinline preload="metadata">
+          <source src="https://res.cloudinary.com/demo/video/upload/q_auto,f_auto/gurukul_tuition_promo.mp4" type="video/mp4">
+        </video>
+      </div>
+
+      <button class="pill-btn" style="width:100%;margin-top:16px;" id="ad_saveBtn">Save Video Ad Settings</button>
+      <div class="ok-msg" id="ad_ok">Video ad settings saved.</div>
     </div>
 
     <!-- GROUPS -->
@@ -1040,6 +1194,7 @@
 <script src="js/admin.js"></script>
 <script src="js/apply-forms.js"></script>
 <script src="js/admin-gallery.js"></script>
+<script src="js/video-ad.js"></script>
 <script src="js/effects.js"></script>
 <script src="js/init.js"></script>
 </body>

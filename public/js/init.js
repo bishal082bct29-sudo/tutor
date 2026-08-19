@@ -12,4 +12,7 @@ renderAll();
   renderAll();
   dataReadyResolve();
   initReveal();
+  if (typeof initVideoAd === 'function') {
+    initVideoAd();
+  }
 })();

@@ -105,7 +105,20 @@ function defaultData(){
       {id:'i2', title:'Concept-based learning', content:'We teach for real understanding, not rote memorisation — helping students grasp the concept instead of just cramming and forgetting.'},
       {id:'i3', title:'All subjects, all levels', content:'From Nursery right through to Bachelor level, we cover every subject with experienced and qualified teachers matched to your child\'s needs.'},
       {id:'i4', title:'2 days FREE demo class', content:'Every new student gets two free demo classes before committing to anything, so your family can feel confident before signing up. Message us on 9801775074 to get started — available across the Kathmandu Valley.'}
-    ]
+    ],
+    videoAd: {
+      enabled: true,
+      videoUrl: '',
+      cloudinaryPublicId: '',
+      title: 'Gurukul Home Tuitions',
+      tagline: 'Best Home Tutors in Kathmandu · Target A+ · Nursery to Bachelor',
+      ctaText: 'Book 2 Days Free Demo Class',
+      ctaAction: 'whatsapp',
+      skipSeconds: 5,
+      frequency: 'always',
+      displayOnOpen: true,
+      soundMutedOnStart: true
+    }
   };
 }
 
@@ -120,6 +133,7 @@ function getInitialCachedData(){
 }
 
 let data = getInitialCachedData();
+window.data = data;
 let isAdmin = false;
 let suppressNextPoll = false;
 let dataReadyResolve;
@@ -135,7 +149,8 @@ function mergeWithDefaults(parsed){
     applications: (parsed && parsed.applications) || def.applications,
     children: (parsed && parsed.children) || def.children,
     gallery: (parsed && parsed.gallery) || def.gallery,
-    extraInfo: (parsed && parsed.extraInfo) || def.extraInfo
+    extraInfo: (parsed && parsed.extraInfo) || def.extraInfo,
+    videoAd: Object.assign({}, def.videoAd, (parsed && parsed.videoAd) || {})
   };
 }
 
@@ -145,36 +160,42 @@ async function loadData(){
     if(!resp.ok) {
       console.warn('API /api/data returned status ' + resp.status + '; using cached/default data.');
       if(!data) data = getInitialCachedData();
+      window.data = data;
       return;
     }
     const contentType = resp.headers.get('content-type') || '';
     if (!contentType.includes('application/json')) {
       console.warn('API /api/data returned non-JSON content; using cached/default data.');
       if(!data) data = getInitialCachedData();
+      window.data = data;
       return;
     }
     const json = await resp.json();
     if(json && json.data){
       data = mergeWithDefaults(json.data);
+      window.data = data;
       lastKnownUpdatedAt = json.updatedAt;
       try{ localStorage.setItem('gurukul_cached_data', JSON.stringify(data)); }catch(e){}
     } else {
       // First time ever running — seed the row with the starter data.
       data = defaultData();
+      window.data = data;
       await saveData();
     }
   }catch(e){
     console.warn('Notice: Using cached/default data state.', e && e.message ? e.message : e);
     if(!data) data = getInitialCachedData();
+    window.data = data;
   }
 }
 
 let saveDebounceTimer = null;
 async function saveData(){
+  window.data = data;
   try{ localStorage.setItem('gurukul_cached_data', JSON.stringify(data)); }catch(e){}
   suppressNextPoll = true;
   clearTimeout(saveDebounceTimer);
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
     saveDebounceTimer = setTimeout(async () => {
       try{
         const resp = await fetch('/api/data', {
@@ -190,14 +211,20 @@ async function saveData(){
               lastKnownUpdatedAt = json.updatedAt;
             }
           }
+          resolve(true);
+        } else {
+          const errJson = await resp.json().catch(() => ({}));
+          console.error('Save to server error:', resp.status, errJson);
+          resolve(true); // local storage already updated
         }
       }catch(e){
         console.warn('Background save note:', e);
+        resolve(true); // fallback resolution
       }
-      resolve();
     }, 20);
   });
 }
+window.saveData = saveData;
 
 function isAppFullyVerified(a){
   if(!a) return false;
@@ -239,8 +266,10 @@ async function pollForChanges(){
     if(json.updatedAt && json.updatedAt === lastKnownUpdatedAt) return; // nothing changed
     lastKnownUpdatedAt = json.updatedAt;
     data = mergeWithDefaults(json.data);
+    window.data = data;
     renderAll();
     if(isAdmin){
+      if (typeof renderAdminVideoAd === 'function') renderAdminVideoAd();
       renderAdminGroups(); renderAdminVacancies(); renderAdminApplications(); renderAdminChildren(); renderAdminGallery(); renderAdminInfo();
     }
   }catch(e){
@@ -297,19 +326,13 @@ async function uploadToCloudinaryOrStorage(fileOrDataUrl, folder = 'gurukul', fi
     }
 
     const result = await res.json();
-    return result.url || payload;
-  } catch (err) {
-    console.warn('Cloudinary/API upload fallback:', err);
-    if (typeof fileOrDataUrl === 'string') return fileOrDataUrl;
-    if (fileOrDataUrl.type && fileOrDataUrl.type.startsWith('image/')) {
-      return await new Promise((resolve) => compressImageFile(fileOrDataUrl, resolve));
+    if (result && result.url) {
+      return result.url;
     }
-    return await new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result);
-      reader.onerror = () => resolve('');
-      reader.readAsDataURL(fileOrDataUrl);
-    });
+    throw new Error('Upload returned no URL');
+  } catch (err) {
+    console.warn('Cloudinary/API upload error:', err);
+    throw err;
   }
 }
 window.uploadToCloudinaryOrStorage = uploadToCloudinaryOrStorage;

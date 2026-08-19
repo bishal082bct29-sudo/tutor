@@ -85,7 +85,7 @@ CRITICAL INSTRUCTIONS:
 8. RAW TEXT:
    - Provide the complete verbatim transcription of every word, number, phone number, and note visible on the flyer.`;
 
-    const modelsToTry = ['gemini-3.6-flash', 'gemini-flash-latest', 'gemini-3.7-flash'];
+    const modelsToTry = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash'];
     let response = null;
     let lastError = null;
 

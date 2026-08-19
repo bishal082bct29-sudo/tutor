@@ -1123,3 +1123,449 @@ footer .wrap{display:flex; justify-content:space-between; gap:20px; flex-wrap:wr
 /* footer wave */
 .footer-wave{display:block; width:100%; height:60px; margin-top:20px;}
 .footer-wave path{fill:var(--card); animation:waveMove 10s linear infinite;}
+
+/* =========================================================
+   GOOGLE VIDEO AD OVERLAY & PLAYER STYLING
+   ========================================================= */
+.g-ad-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100000;
+  background: rgba(5, 7, 15, 0.94);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.35s ease;
+}
+.g-ad-overlay.active {
+  opacity: 1;
+  visibility: visible;
+}
+.g-ad-modal {
+  position: relative;
+  width: 100%;
+  max-width: 960px;
+  max-height: 92vh;
+  background: #0d1117;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 18px;
+  box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.9), 0 0 40px rgba(99, 102, 241, 0.18);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transform: scale(0.96) translateY(12px);
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.g-ad-overlay.active .g-ad-modal {
+  transform: scale(1) translateY(0);
+}
+
+/* Top Google Ad Header Bar */
+.g-ad-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 18px;
+  background: rgba(18, 24, 38, 0.96);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  color: #fff;
+  font-size: 13px;
+  user-select: none;
+  z-index: 20;
+}
+.g-ad-top-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.g-ad-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #fbbc04;
+  color: #111;
+  font-weight: 800;
+  font-size: 11px;
+  padding: 2px 7px;
+  border-radius: 4px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+.g-ad-network-label {
+  color: #cbd5e1;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.g-ad-domain-link {
+  color: #93c5fd;
+  text-decoration: none;
+  font-weight: 600;
+  transition: color 0.2s;
+}
+.g-ad-domain-link:hover {
+  color: #60a5fa;
+  text-decoration: underline;
+}
+.g-ad-info-btn {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: #e2e8f0;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  font-size: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.g-ad-info-btn:hover {
+  background: rgba(255, 255, 255, 0.25);
+  color: #fff;
+}
+.g-ad-top-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.g-ad-close-x {
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+.g-ad-close-x:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* Video Stage Area */
+.g-ad-video-stage {
+  position: relative;
+  width: 100%;
+  background: #000;
+  aspect-ratio: 16 / 9;
+  max-height: 60vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+.g-ad-video-element {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: #000;
+  display: block;
+}
+.g-ad-canvas-element {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: #090d16;
+  display: none;
+}
+.g-ad-canvas-element.active {
+  display: block;
+}
+
+/* Floating "Tap to Unmute" Google ad badge */
+.g-ad-unmute-overlay {
+  position: absolute;
+  top: 18px;
+  left: 18px;
+  z-index: 15;
+  background: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  color: #fff;
+  padding: 8px 14px;
+  border-radius: 30px;
+  font-size: 13px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+  animation: gAdPulse 2s infinite ease-in-out;
+  transition: all 0.2s ease;
+}
+.g-ad-unmute-overlay:hover {
+  background: rgba(30, 41, 59, 0.95);
+  transform: scale(1.04);
+  border-color: rgba(255, 255, 255, 0.4);
+}
+@keyframes gAdPulse {
+  0%, 100% { transform: scale(1); box-shadow: 0 4px 16px rgba(0,0,0,0.5); }
+  50% { transform: scale(1.04); box-shadow: 0 6px 22px rgba(99, 102, 241, 0.6); }
+}
+
+/* Google Skip Ad Box (Bottom Right of Video) */
+.g-ad-skip-container {
+  position: absolute;
+  bottom: 22px;
+  right: 18px;
+  z-index: 15;
+}
+.g-ad-skip-counter {
+  background: rgba(15, 23, 42, 0.88);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #f1f5f9;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 10px 18px;
+  border-radius: 8px;
+  letter-spacing: 0.2px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.6);
+  user-select: none;
+}
+.g-ad-skip-counter strong {
+  color: #fbbf24;
+  font-size: 15px;
+}
+.g-ad-skip-btn {
+  background: #2563eb;
+  color: #fff;
+  border: none;
+  font-size: 14px;
+  font-weight: 700;
+  padding: 11px 22px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 6px 20px rgba(37, 99, 235, 0.45);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  animation: gAdSkipHighlight 0.5s ease-out;
+}
+.g-ad-skip-btn:hover {
+  background: #1d4ed8;
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 8px 26px rgba(37, 99, 235, 0.65);
+}
+@keyframes gAdSkipHighlight {
+  0% { transform: scale(0.85); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+/* Custom In-Video Minimal Progress Line */
+.g-ad-progress-track {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.25);
+  z-index: 14;
+}
+.g-ad-progress-fill {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, #f59e0b, #ef4444);
+  transition: width 0.1s linear;
+}
+
+/* Bottom Google Ad Action Bar */
+.g-ad-bottombar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 22px;
+  background: #121826;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.g-ad-brand-info {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex: 1;
+  min-width: 240px;
+}
+.g-ad-brand-logo {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #403d94, #00d2ff);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-weight: 800;
+  font-size: 20px;
+  overflow: hidden;
+  flex-shrink: 0;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
+.g-ad-brand-logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.g-ad-brand-texts h4 {
+  font-size: 16px;
+  font-weight: 700;
+  color: #f8fafc;
+  margin: 0 0 3px 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.g-ad-verified-badge {
+  color: #38bdf8;
+  font-size: 14px;
+}
+.g-ad-brand-texts p {
+  font-size: 12.5px;
+  color: #94a3b8;
+  margin: 0;
+  line-height: 1.4;
+}
+.g-ad-cta-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.g-ad-cta-primary {
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  color: #fff;
+  border: none;
+  font-size: 14px;
+  font-weight: 700;
+  padding: 12px 22px;
+  border-radius: 10px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);
+  text-decoration: none;
+}
+.g-ad-cta-primary:hover {
+  background: linear-gradient(135deg, #1d4ed8, #1e40af);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(37, 99, 235, 0.5);
+}
+.g-ad-cta-whatsapp {
+  background: #25d366;
+  color: #fff;
+  border: none;
+  font-size: 14px;
+  font-weight: 700;
+  padding: 12px 18px;
+  border-radius: 10px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 4px 14px rgba(37, 211, 102, 0.35);
+  text-decoration: none;
+}
+.g-ad-cta-whatsapp:hover {
+  background: #20ba59;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(37, 211, 102, 0.55);
+}
+
+/* About Google Ad Info Tooltip / Box */
+.g-ad-about-popup {
+  position: absolute;
+  top: 50px;
+  left: 20px;
+  max-width: 340px;
+  background: #1e293b;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 12px;
+  padding: 16px;
+  color: #e2e8f0;
+  font-size: 12.5px;
+  line-height: 1.5;
+  box-shadow: 0 16px 36px rgba(0,0,0,0.7);
+  z-index: 50;
+  display: none;
+}
+.g-ad-about-popup.show {
+  display: block;
+  animation: gAdFadeIn 0.2s ease-out;
+}
+.g-ad-about-popup h5 {
+  font-size: 14px;
+  color: #fff;
+  margin: 0 0 8px;
+  font-weight: 700;
+}
+@keyframes gAdFadeIn {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 768px) {
+  .g-ad-overlay { padding: 8px; }
+  .g-ad-topbar { padding: 10px 14px; font-size: 12px; }
+  .g-ad-bottombar { padding: 12px 14px; flex-direction: column; align-items: stretch; }
+  .g-ad-cta-group { justify-content: stretch; }
+  .g-ad-cta-group button, .g-ad-cta-group a { flex: 1; justify-content: center; text-align: center; }
+  .g-ad-skip-container { bottom: 12px; right: 12px; }
+  .g-ad-skip-counter { padding: 8px 14px; font-size: 12px; }
+  .g-ad-skip-btn { padding: 9px 16px; font-size: 13px; }
+}
+
+/* Video Ad Admin Pane Enhancements */
+.video-ad-preview-box {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 16px;
+  margin-top: 14px;
+}
+.video-ad-preview-box video {
+  width: 100%;
+  max-height: 260px;
+  border-radius: 8px;
+  background: #000;
+}
+.admin-switch-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  margin-bottom: 14px;
+}
+.admin-switch-row label {
+  font-weight: 600;
+  font-size: 14px;
+  margin: 0;
+  cursor: pointer;
+}
+.admin-switch-row input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+}
