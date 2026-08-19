@@ -318,6 +318,8 @@ function renderAdminVacancies(){
         <span>${escapeHtml(v.subject||'')} · Location: ${escapeHtml(v.location||'N/A')} · Pay: ${escapeHtml(v.salary||'N/A')} · Status: ${statusLabel} · ${appsCount} applicant(s)</span>
       </div>
       <div class="row-actions">
+        <button class="mini-btn" onclick="copyVacancyLink('${v.id}')" title="Copy Direct Link for Facebook Post">📋 FB Link</button>
+        <button class="mini-btn" onclick="copyFacebookPostTemplate('${v.id}')" title="Copy Ready Facebook Post Caption with Link">📱 FB Post</button>
         <button class="mini-btn" onclick="editVacancy('${v.id}')">Edit</button>
         <button class="mini-btn danger" onclick="deleteVacancy('${v.id}')">Delete</button>
       </div>

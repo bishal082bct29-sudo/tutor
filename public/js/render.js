@@ -190,7 +190,7 @@ function renderVacancies(){
     const waUrl = `https://wa.me/9779801775074?text=${waText}`;
 
     return `
-    <div class="vac-card-large ${isClosed ? 'status-filled-card' : ''}">
+    <div class="vac-card-large ${isClosed ? 'status-filled-card' : ''}" id="vac-card-${v.id}" data-vac-id="${v.id}">
       <div class="vac-card-inner-top">
         <!-- Top Title & Status -->
         <div class="vac-card-header-row">
@@ -250,9 +250,14 @@ function renderVacancies(){
       <div class="vac-card-footer">
         <div class="vac-footer-meta-row">
           <span class="vac-applicants-text">👥 ${applicantText}</span>
-          <a href="${waUrl}" target="_blank" rel="noopener" class="vac-wa-inline-link" title="Chat on WhatsApp">
-            💬 WhatsApp Inquiry
-          </a>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <button type="button" class="vac-share-btn" onclick="copyVacancyLink('${v.id}')" title="Copy Direct Facebook / Share Link">
+              🔗 Share Link
+            </button>
+            <a href="${waUrl}" target="_blank" rel="noopener" class="vac-wa-inline-link" title="Chat on WhatsApp">
+              💬 WhatsApp
+            </a>
+          </div>
         </div>
 
         ${isClosed 

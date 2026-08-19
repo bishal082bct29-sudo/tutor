@@ -1,7 +1,7 @@
 /* ---------- APPLY (public — teachers applying to a vacancy) ---------- */
 const applyOverlay = document.getElementById('applyOverlay');
 const MAX_CV_FILE_MB = 5;
-function openApply(vacId){
+function openApply(vacId, isDirectLink = false){
   const v = data.vacancies.find(x=>x.id===vacId);
   if(v && isVacancyVerified(v)){
     showToast('This vacancy post is verified & filled. Applications are closed.');
@@ -14,11 +14,16 @@ function openApply(vacId){
   const bannerEl = document.getElementById('apply_applicantBanner');
   if(bannerEl){
     const count = getVacancyApplicantCount(vacId);
-    bannerEl.innerHTML = count === 0 
+    let bannerContent = count === 0 
       ? '👥 <b>Be the first teacher to apply!</b> No other teachers have applied for this post yet.' 
       : (count === 1 
           ? '👥 <b>1 other teacher</b> has applied for this vacancy post.' 
           : '👥 <b>' + count + ' other teachers</b> have applied for this vacancy post.');
+    
+    if(isDirectLink && v){
+      bannerContent = `🎯 <b>Direct Apply for:</b> ${escapeHtml(v.title)} (${escapeHtml(v.location||'Kathmandu')})<br><span style="font-size:12px;opacity:0.85;">${bannerContent}</span>`;
+    }
+    bannerEl.innerHTML = bannerContent;
   }
 
   document.getElementById('apply_name').value = '';
@@ -43,6 +48,63 @@ function openApply(vacId){
 }
 document.getElementById('applyCloseBtn').addEventListener('click', () => applyOverlay.classList.remove('open'));
 applyOverlay.addEventListener('click', e => { if(e.target === applyOverlay) applyOverlay.classList.remove('open'); });
+
+// Helper to copy direct link for Facebook / WhatsApp / Social media
+window.copyVacancyLink = function(vacId){
+  const baseUrl = window.location.origin.includes('localhost') || window.location.origin.includes('127.0.0.1') 
+    ? window.location.origin 
+    : 'https://gurukultuition.vercel.app';
+  const url = `${baseUrl}/?apply=${vacId}`;
+  
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(url).then(() => {
+      showToast('📋 Direct Apply Link copied to clipboard!');
+    }).catch(() => {
+      prompt('Copy this Direct Apply Link:', url);
+    });
+  } else {
+    prompt('Copy this Direct Apply Link:', url);
+  }
+};
+
+// Helper to generate full ready-to-post Facebook caption with direct apply link
+window.copyFacebookPostTemplate = function(vacId){
+  const v = (data.vacancies || []).find(x => x.id === vacId);
+  if(!v){
+    showToast('Vacancy not found');
+    return;
+  }
+  const baseUrl = window.location.origin.includes('localhost') || window.location.origin.includes('127.0.0.1') 
+    ? window.location.origin 
+    : 'https://gurukultuition.vercel.app';
+  const directLink = `${baseUrl}/?apply=${vacId}`;
+  
+  const fbText = 
+`🔥 URGENT HOME TUTOR VACANCY — KATHMANDU VALLEY 🔥
+
+📚 Position / Subject: ${v.title || v.subject || 'Home Tutor'}
+📍 Location: ${v.location || 'Kathmandu Valley'}
+🎯 Class / Level: ${v.level || 'School / College'}
+💰 Monthly Salary: ${v.salary || 'Negotiable'}
+⏰ Schedule / Time: ${v.schedule || 'Flexible / 1-1.5 hrs per day'}
+${v.description ? `📝 Details: ${v.description}\n` : ''}
+👉 CLICK HERE TO APPLY DIRECTLY:
+${directLink}
+
+✨ 2-Day Free Demo Class Assurance
+📞 Gurukul Home Tuitions · WhatsApp / Call: 9801775074
+🌐 Website: ${baseUrl}`;
+
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(fbText).then(() => {
+      showToast('📱 Ready Facebook post caption & direct link copied!');
+    }).catch(() => {
+      prompt('Copy Facebook Post Caption:', fbText);
+    });
+  } else {
+    prompt('Copy Facebook Post Caption:', fbText);
+  }
+};
 
 document.getElementById('apply_cvFile').addEventListener('change', () => {
   const file = document.getElementById('apply_cvFile').files[0];

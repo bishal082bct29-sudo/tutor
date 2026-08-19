@@ -74,6 +74,15 @@
       }
     });
 
+    // Don't interrupt direct links (e.g. from Facebook "Apply" buttons or deep links)
+    const urlParams = new URLSearchParams(window.location.search);
+    const hash = window.location.hash || '';
+    if (urlParams.has('apply') || urlParams.has('vacancy') || 
+        urlParams.has('register') || urlParams.has('parent') || urlParams.has('child') ||
+        hash.includes('apply-') || hash.includes('register-')) {
+      return;
+    }
+
     // Check frequency settings
     const config = (window.data && window.data.videoAd) || { enabled: true, frequency: 'always' };
     if (config.enabled === false) {
